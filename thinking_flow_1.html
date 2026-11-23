@@ -1,0 +1,1815 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thinking Flow • Mind Map & Project Studio</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans Tamil', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        canvas: {
+                            light: '#f8fafc',
+                            dark: '#090d16'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts: Inter, Noto Sans Tamil, JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Tamil:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Marked.js for Markdown Preview -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Highlight.js for Code Syntax Highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <!-- Firebase SDKs (Compat v10 for zero-build browser usage) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+    <!-- Google Identity Services & GAPI for Google Drive -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js" async defer></script>
+
+    <style>
+        /* Custom Dot Grid Background & Canvas Styles */
+        body {
+            overflow: hidden;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .canvas-grid-light {
+            background-color: #f8fafc;
+            background-image: radial-gradient(#cbd5e1 1.25px, transparent 1.25px);
+            background-size: 24px 24px;
+        }
+        .canvas-grid-dark {
+            background-color: #090d16;
+            background-image: radial-gradient(#1e293b 1.25px, transparent 1.25px);
+            background-size: 24px 24px;
+        }
+
+        /* Smooth node transitions during auto-layout only */
+        .layout-animating .mind-node {
+            transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .layout-animating .connector-path {
+            transition: d 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.3);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.5);
+        }
+
+        /* Markdown Preview Styling */
+        .markdown-body h1 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .markdown-body h2 { font-size: 1.1rem; font-weight: 600; margin-top: 0.75rem; margin-bottom: 0.4rem; }
+        .markdown-body p { margin-bottom: 0.5rem; line-height: 1.5; }
+        .markdown-body ul { list-style-type: disc; padding-left: 1.25rem; margin-bottom: 0.5rem; }
+        .markdown-body ol { list-style-type: decimal; padding-left: 1.25rem; margin-bottom: 0.5rem; }
+        .markdown-body code { background: rgba(148, 163, 184, 0.2); padding: 0.1rem 0.3rem; border-radius: 0.25rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85em; }
+        .markdown-body blockquote { border-left: 3px solid #6366f1; padding-left: 0.75rem; opacity: 0.85; font-style: italic; }
+
+        /* Selected Node Pulse Ring */
+        .node-selected {
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.5), 0 12px 28px -6px rgba(0, 0, 0, 0.35);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-[#090d16] text-slate-800 dark:text-slate-100 font-sans antialiased h-screen w-screen flex flex-col">
+
+    <!-- Top Floating Header Toolbar -->
+    <header class="fixed top-3 left-3 right-3 z-30 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+        <!-- Brand & Project Title -->
+        <div class="pointer-events-auto flex items-center gap-2.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 px-3.5 py-2 rounded-2xl shadow-lg">
+            <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-inner">
+                <i data-lucide="network" class="w-4 h-4"></i>
+            </div>
+            <div class="flex flex-col">
+                <div class="flex items-center gap-1.5">
+                    <input id="mapTitleInput" type="text" value="Project Thinking Flow" 
+                        class="bg-transparent font-bold text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-indigo-500/50 rounded px-1 -ml-1 w-36 sm:w-52 truncate"
+                        title="Click to rename Mind Map / திட்டத்தின் பெயரை மாற்றவும்" />
+                </div>
+                <span id="saveStatusBadge" class="text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>Offline Auto-Saved • சேமிக்கப்பட்டது</span>
+                </span>
+            </div>
+        </div>
+
+        <!-- Center Search & Layout Controls -->
+        <div class="pointer-events-auto hidden md:flex items-center gap-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-2xl shadow-lg">
+            <!-- Search Input -->
+            <div class="relative flex items-center">
+                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-2.5"></i>
+                <input id="searchNodesInput" type="text" placeholder="Search nodes / தேடுக..." 
+                    class="pl-8 pr-7 py-1.5 text-xs bg-slate-100 dark:bg-slate-800/80 border border-transparent focus:border-indigo-500 rounded-xl focus:outline-none w-44 lg:w-56 transition-all" />
+                <button id="clearSearchBtn" class="hidden absolute right-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                </button>
+            </div>
+
+            <div class="h-5 w-[1px] bg-slate-200 dark:bg-slate-700 mx-1"></div>
+
+            <!-- Layout Switcher -->
+            <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-medium" title="Layout Mode / அமைப்பு முறை">
+                <button data-layout="tree" class="layout-btn px-2.5 py-1 rounded-lg bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400 flex items-center gap-1 transition">
+                    <i data-lucide="git-fork" class="w-3.5 h-3.5"></i>
+                    <span>Tree</span>
+                </button>
+                <button data-layout="radial" class="layout-btn px-2.5 py-1 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 transition">
+                    <i data-lucide="sun" class="w-3.5 h-3.5"></i>
+                    <span>Radial</span>
+                </button>
+                <button data-layout="freeform" class="layout-btn px-2.5 py-1 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 transition">
+                    <i data-lucide="move" class="w-3.5 h-3.5"></i>
+                    <span>Free</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Right Action Controls -->
+        <div class="pointer-events-auto flex items-center gap-1.5 sm:gap-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 px-2.5 py-1.5 rounded-2xl shadow-lg">
+            <!-- Cloud Sync & Backend Modal Trigger -->
+            <button id="openSyncModalBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition active:scale-95" title="Cloud Sync & Backup / மேகக்கணி ஒத்திசைவு">
+                <i data-lucide="cloud" class="w-3.5 h-3.5"></i>
+                <span class="hidden sm:inline">Cloud & Backup</span>
+            </button>
+
+            <!-- Reset / Sample Map -->
+            <button id="resetSampleBtn" class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Load Sample Project / மாதிரி திட்டம்">
+                <i data-lucide="sparkles" class="w-4 h-4"></i>
+            </button>
+
+            <!-- Keyboard Shortcuts Info -->
+            <button id="openHelpBtn" class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Shortcuts & Guide / குறுக்குவழிகள்">
+                <i data-lucide="help-circle" class="w-4 h-4"></i>
+            </button>
+
+            <!-- Theme Toggle -->
+            <button id="themeToggleBtn" class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Toggle Dark/Light Theme">
+                <i data-lucide="sun" class="w-4 h-4 hidden dark:block text-amber-400"></i>
+                <i data-lucide="moon" class="w-4 h-4 block dark:hidden text-indigo-600"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Mobile Search & Layout Bar -->
+    <div class="md:hidden fixed top-16 left-3 right-3 z-20 flex items-center justify-between gap-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-xl shadow">
+        <input id="mobileSearchInput" type="text" placeholder="Search / தேடுக..." class="bg-slate-100 dark:bg-slate-800 text-xs px-2.5 py-1.5 rounded-lg w-1/2 focus:outline-none">
+        <div class="flex items-center gap-1 text-[11px]">
+            <button data-layout="tree" class="layout-btn px-2 py-1 rounded bg-indigo-600 text-white">Tree</button>
+            <button data-layout="radial" class="layout-btn px-2 py-1 rounded bg-slate-200 dark:bg-slate-800">Radial</button>
+            <button data-layout="freeform" class="layout-btn px-2 py-1 rounded bg-slate-200 dark:bg-slate-800">Free</button>
+        </div>
+    </div>
+
+    <!-- Main Interactive Canvas Area -->
+    <main id="canvasViewport" class="relative flex-1 w-full h-full overflow-hidden canvas-grid-dark cursor-grab active:cursor-grabbing">
+        <!-- Transformable World Container -->
+        <div id="canvasWorld" class="absolute top-0 left-0 origin-top-left will-change-transform" style="transform: translate(0px, 0px) scale(1);">
+            <!-- SVG Layer for Bezier Connectors -->
+            <svg id="connectionsLayer" class="absolute top-0 left-0 overflow-visible pointer-events-none" width="1" height="1"></svg>
+            <!-- HTML Layer for Mind Map Nodes -->
+            <div id="nodesLayer" class="relative"></div>
+        </div>
+
+        <!-- Bottom Floating Quick Action & Zoom Dock -->
+        <div class="fixed bottom-4 left-4 z-20 flex flex-wrap items-center gap-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 p-1.5 rounded-2xl shadow-xl">
+            <button id="addChildQuickBtn" class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition active:scale-95" title="Add Child Node (Tab) / கிளை சேர்">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                <span>+ Child <span class="opacity-75 hidden sm:inline">(Tab)</span></span>
+            </button>
+            <button id="addSiblingQuickBtn" class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition active:scale-95" title="Add Sibling Node (Enter) / இணை சேர்">
+                <i data-lucide="git-commit" class="w-4 h-4"></i>
+                <span>+ Sibling <span class="opacity-75 hidden sm:inline">(Enter)</span></span>
+            </button>
+            <button id="deleteNodeQuickBtn" class="p-2 rounded-xl text-rose-500 hover:bg-rose-500/10 transition active:scale-95" title="Delete Selected Node (Del) / நீக்கு">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+
+            <div class="h-5 w-[1px] bg-slate-200 dark:bg-slate-700 mx-0.5"></div>
+
+            <!-- Zoom Controls -->
+            <button id="zoomOutBtn" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300" title="Zoom Out">
+                <i data-lucide="zoom-out" class="w-4 h-4"></i>
+            </button>
+            <span id="zoomLevelLabel" class="text-xs font-mono font-medium w-11 text-center">100%</span>
+            <button id="zoomInBtn" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300" title="Zoom In">
+                <i data-lucide="zoom-in" class="w-4 h-4"></i>
+            </button>
+            <button id="centerViewBtn" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-indigo-500" title="Center Map / மையப்படுத்து">
+                <i data-lucide="crosshair" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </main>
+
+    <!-- Rich Node Details Side-Panel (Slide-Over Drawer) -->
+    <aside id="nodeInspectorPanel" class="fixed top-3 bottom-3 right-3 w-[calc(100%-1.5rem)] sm:w-[440px] z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl flex flex-col transform translate-x-[110%] transition-transform duration-300 ease-out">
+        <!-- Panel Header -->
+        <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800">
+            <div class="flex items-center gap-2">
+                <span id="inspectorColorDot" class="w-3.5 h-3.5 rounded-full bg-indigo-500 shadow"></span>
+                <h2 class="font-bold text-sm tracking-wide uppercase text-slate-500 dark:text-slate-400">
+                    Node Details • குறிப்புகள்
+                </h2>
+            </div>
+            <div class="flex items-center gap-1">
+                <button id="panelAddChildBtn" class="p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 text-xs font-medium flex items-center gap-1" title="Add Sub-node">
+                    <i data-lucide="plus" class="w-4 h-4"></i> Sub-node
+                </button>
+                <button id="closeInspectorBtn" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Panel Scrollable Content -->
+        <div class="flex-1 overflow-y-auto p-5 space-y-5 select-text">
+            <!-- Title Input -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">
+                    Node Title / தலைப்பு
+                </label>
+                <input id="nodeTitleInput" type="text" placeholder="Enter node title..." 
+                    class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 focus:border-indigo-500 focus:outline-none font-semibold text-base" />
+            </div>
+
+            <!-- Status / Tag & Branch Color Row -->
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">
+                        Status / நிலை
+                    </label>
+                    <select id="nodeStatusSelect" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-xs font-medium focus:border-indigo-500 focus:outline-none">
+                        <option value="Idea">💡 Idea (யோசனை)</option>
+                        <option value="In Progress">⚡ In Progress (செயல்பாட்டில்)</option>
+                        <option value="Done">✅ Done (முடிந்தது)</option>
+                        <option value="Hardware">🔧 Hardware (வன்பொருள்)</option>
+                        <option value="Code">💻 Code (நிரல்)</option>
+                        <option value="Research">🔬 Research (ஆய்வு)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">
+                        Branch Color / நிறம்
+                    </label>
+                    <div id="colorPalettePicker" class="flex items-center justify-between bg-slate-100 dark:bg-slate-800/90 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700">
+                        <!-- Color swatches injected via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Tabs: Notes | Code | Images -->
+            <div>
+                <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-3">
+                    <button data-tab="notes" class="inspector-tab flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm flex items-center justify-center gap-1.5">
+                        <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                        <span>Notes (குறிப்பு)</span>
+                    </button>
+                    <button data-tab="code" class="inspector-tab flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center justify-center gap-1.5">
+                        <i data-lucide="code-2" class="w-3.5 h-3.5"></i>
+                        <span>Code (நிரல்)</span>
+                    </button>
+                    <button data-tab="media" class="inspector-tab flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center justify-center gap-1.5">
+                        <i data-lucide="image" class="w-3.5 h-3.5"></i>
+                        <span>Image (படம்)</span>
+                    </button>
+                </div>
+
+                <!-- TAB 1: Rich Markdown Notes -->
+                <div id="tab-notes" class="tab-content space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-slate-500 dark:text-slate-400">Markdown supported (**bold**, - list, `code`)</span>
+                        <button id="toggleMarkdownPreviewBtn" class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+                            <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                            <span id="mdPreviewLabel">Preview</span>
+                        </button>
+                    </div>
+                    <textarea id="nodeNotesInput" rows="8" placeholder="Write project thoughts, architecture steps, or Tamil/English notes here..."
+                        class="w-full p-3 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 focus:border-indigo-500 focus:outline-none text-sm leading-relaxed resize-y"></textarea>
+                    <div id="nodeNotesPreview" class="hidden markdown-body p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-sm min-h-[180px]"></div>
+                </div>
+
+                <!-- TAB 2: Code Snippet -->
+                <div id="tab-code" class="tab-content hidden space-y-2.5">
+                    <div class="flex items-center justify-between gap-2">
+                        <select id="nodeCodeLangSelect" class="px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono">
+                            <option value="javascript">JavaScript / Node.js</option>
+                            <option value="python">Python</option>
+                            <option value="cpp">C / C++ (Arduino/ESP32)</option>
+                            <option value="html">HTML / CSS</option>
+                            <option value="sql">SQL / Firestore Rules</option>
+                            <option value="bash">Bash / Terminal</option>
+                        </select>
+                        <button id="copyCodeSnippetBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition">
+                            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                            <span>Copy Code</span>
+                        </button>
+                    </div>
+                    <textarea id="nodeCodeInput" rows="8" spellcheck="false" placeholder="// Paste your firmware, API, or algorithm snippet here..."
+                        class="w-full p-3 rounded-xl bg-slate-950 text-emerald-400 font-mono text-xs leading-relaxed border border-slate-800 focus:border-indigo-500 focus:outline-none resize-y"></textarea>
+                    <div class="rounded-xl overflow-hidden border border-slate-800">
+                        <div class="bg-slate-800/90 px-3 py-1 text-[10px] font-mono uppercase tracking-wider text-slate-400 flex justify-between">
+                            <span>Syntax Highlighted Preview</span>
+                            <span id="codeLangBadge">javascript</span>
+                        </div>
+                        <pre class="m-0 p-3 bg-[#282c34] text-xs overflow-x-auto"><code id="nodeCodePreview" class="language-javascript"></code></pre>
+                    </div>
+                </div>
+
+                <!-- TAB 3: Image Attachment -->
+                <div id="tab-media" class="tab-content hidden space-y-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                            Paste Image URL / படத்தின் இணைப்பு
+                        </label>
+                        <div class="flex gap-2">
+                            <input id="nodeImageUrlInput" type="url" placeholder="https://example.com/diagram.png"
+                                class="flex-1 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs focus:border-indigo-500 focus:outline-none" />
+                            <button id="clearImageBtn" class="px-2.5 py-2 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 text-xs font-medium" title="Remove Image">
+                                Clear
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="relative border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-4 text-center hover:border-indigo-500 transition cursor-pointer" id="imageDropZone">
+                        <input id="nodeImageFileInput" type="file" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                        <i data-lucide="upload-cloud" class="w-7 h-7 mx-auto text-indigo-500 mb-1"></i>
+                        <p class="text-xs font-semibold">Click or Drop Local Image (Auto-Compressed)</p>
+                        <p class="text-[11px] text-slate-400 mt-0.5">கணினியிலிருந்து படத்தை பதிவேற்றவும் (PNG, JPG, WebP)</p>
+                    </div>
+
+                    <!-- Full Image Preview -->
+                    <div id="nodeImagePreviewContainer" class="hidden rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-950">
+                        <img id="nodeImagePreview" src="" alt="Node Attachment" class="w-full max-h-64 object-contain mx-auto" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel Footer Metadata -->
+        <div class="px-5 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+            <span id="nodeMetaInfo">ID: root</span>
+            <button id="panelDeleteNodeBtn" class="text-rose-500 hover:underline flex items-center gap-1 font-medium">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Delete Node
+            </button>
+        </div>
+    </aside>
+
+    <!-- Cloud Sync, Firebase & Google Drive Modal -->
+    <div id="syncModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
+                        <i data-lucide="cloud-cog" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-base">Zero-Cost Cloud Sync & Backup</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">JSON Export • Firebase Firestore • Google Drive API</p>
+                    </div>
+                </div>
+                <button id="closeSyncModalBtn" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Modal Tabs -->
+            <div class="flex border-b border-slate-200 dark:border-slate-800 px-6 bg-slate-50/50 dark:bg-slate-950/30">
+                <button data-synctab="json" class="sync-tab-btn py-3 px-4 text-xs font-bold border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400">
+                    1. JSON Backup (Offline/Drive)
+                </button>
+                <button data-synctab="firebase" class="sync-tab-btn py-3 px-4 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">
+                    2. Firebase Spark Sync
+                </button>
+                <button data-synctab="gdrive" class="sync-tab-btn py-3 px-4 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">
+                    3. Google Drive Direct
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 overflow-y-auto space-y-5 text-sm select-text">
+                <!-- TAB 1: JSON Export/Import -->
+                <div id="synctab-json" class="sync-tab-panel space-y-4">
+                    <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs leading-relaxed">
+                        <strong>Zero-Configuration Sync (பூஜ்ஜிய கட்டண சேமிப்பு):</strong> Your mind map auto-saves in your browser's LocalStorage. Export as a portable <code>.json</code> file (including notes, code, and images) to store in your Google Drive desktop folder or share across devices.
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <button id="exportJsonBtn" class="flex flex-col items-center justify-center gap-2 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:bg-indigo-500/5 transition">
+                            <i data-lucide="download" class="w-7 h-7 text-indigo-500"></i>
+                            <span class="font-bold text-sm">Export Mind Map (.JSON)</span>
+                            <span class="text-xs text-slate-400 text-center">கோப்பாக பதிவிறக்கம் செய்க</span>
+                        </button>
+                        <label class="flex flex-col items-center justify-center gap-2 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-emerald-500 hover:bg-emerald-500/5 transition cursor-pointer">
+                            <i data-lucide="upload" class="w-7 h-7 text-emerald-500"></i>
+                            <span class="font-bold text-sm">Import Mind Map (.JSON)</span>
+                            <span class="text-xs text-slate-400 text-center">சேமித்த கோப்பை திறக்கவும்</span>
+                            <input id="importJsonInput" type="file" accept=".json,application/json" class="hidden" />
+                        </label>
+                    </div>
+                </div>
+
+                <!-- TAB 2: Firebase Firestore Spark Plan -->
+                <div id="synctab-firebase" class="sync-tab-panel hidden space-y-4">
+                    <div class="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-200 space-y-1">
+                        <p class="font-bold">Firebase Free Spark Plan Setup:</p>
+                        <p>1. Create a free project at <code>console.firebase.google.com</code> & enable <strong>Authentication (Google)</strong> + <strong>Firestore Database</strong>.</p>
+                        <p>2. Paste your Web App <code>firebaseConfig</code> JSON object below to sync real-time across devices.</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold mb-1">Firebase Web Config JSON</label>
+                        <textarea id="firebaseConfigInput" rows="5" placeholder='{"apiKey": "AIza...", "authDomain": "your-app.firebaseapp.com", "projectId": "your-app", "storageBucket": "...", "messagingSenderId": "...", "appId": "..."}'
+                            class="w-full p-3 rounded-xl bg-slate-100 dark:bg-slate-950 font-mono text-xs border border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:outline-none"></textarea>
+                    </div>
+
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <button id="connectFirebaseBtn" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold flex items-center gap-1.5">
+                            <i data-lucide="flame" class="w-4 h-4"></i>
+                            <span>Connect & Sign In with Google</span>
+                        </button>
+                        <div class="flex items-center gap-2">
+                            <button id="pushFirebaseBtn" disabled class="px-3 py-2 rounded-xl bg-indigo-600 disabled:opacity-40 text-white text-xs font-semibold">
+                                Push to Cloud ↑
+                            </button>
+                            <button id="pullFirebaseBtn" disabled class="px-3 py-2 rounded-xl bg-emerald-600 disabled:opacity-40 text-white text-xs font-semibold">
+                                Pull from Cloud ↓
+                            </button>
+                        </div>
+                    </div>
+                    <p id="firebaseStatusText" class="text-xs text-slate-400">Status: Not connected (இணைக்கப்படவில்லை)</p>
+                </div>
+
+                <!-- TAB 3: Google Drive API Integration -->
+                <div id="synctab-gdrive" class="sync-tab-panel hidden space-y-4">
+                    <div class="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-800 dark:text-blue-200 space-y-1">
+                        <p class="font-bold">Direct Google Drive Folder Sync (<code>MindMap_Flows</code>):</p>
+                        <p>1. In Google Cloud Console, enable <strong>Google Drive API</strong> and create an <strong>OAuth 2.0 Web Client ID</strong>.</p>
+                        <p>2. Add your current origin URL to Authorized JavaScript Origins and paste your Client ID below.</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold mb-1">Google OAuth 2.0 Client ID</label>
+                        <input id="gdriveClientIdInput" type="text" placeholder="1234567890-abcdefg.apps.googleusercontent.com"
+                            class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-950 font-mono text-xs border border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:outline-none" />
+                    </div>
+
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <button id="authorizeGdriveBtn" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5">
+                            <i data-lucide="hard-drive" class="w-4 h-4"></i>
+                            <span>Authorize Google Drive</span>
+                        </button>
+                        <div class="flex items-center gap-2">
+                            <button id="saveToGdriveBtn" disabled class="px-3 py-2 rounded-xl bg-indigo-600 disabled:opacity-40 text-white text-xs font-semibold">
+                                Save to Drive ↑
+                            </button>
+                            <button id="loadFromGdriveBtn" disabled class="px-3 py-2 rounded-xl bg-emerald-600 disabled:opacity-40 text-white text-xs font-semibold">
+                                Load Latest ↓
+                            </button>
+                        </div>
+                    </div>
+                    <p id="gdriveStatusText" class="text-xs text-slate-400">Status: Awaiting OAuth Client ID</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help & Shortcuts Modal -->
+    <div id="helpModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i data-lucide="keyboard" class="w-5 h-5 text-indigo-500"></i>
+                    <span>Shortcuts & Controls • குறுக்குவழிகள்</span>
+                </h3>
+                <button id="closeHelpModalBtn" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <div class="space-y-2.5 text-xs">
+                <div class="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800">
+                    <span class="text-slate-500 dark:text-slate-400">Add Child Node (துணை கிளை சேர்)</span>
+                    <kbd class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono font-bold">Tab</kbd>
+                </div>
+                <div class="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800">
+                    <span class="text-slate-500 dark:text-slate-400">Add Sibling Node (இணை கிளை சேர்)</span>
+                    <kbd class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono font-bold">Enter</kbd>
+                </div>
+                <div class="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800">
+                    <span class="text-slate-500 dark:text-slate-400">Delete Selected Node (நீக்கு)</span>
+                    <kbd class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono font-bold">Delete / Backspace</kbd>
+                </div>
+                <div class="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800">
+                    <span class="text-slate-500 dark:text-slate-400">Open Node Editor (குறிப்புகளை திற)</span>
+                    <kbd class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono font-bold">Click / Double-Click</kbd>
+                </div>
+                <div class="flex justify-between py-1.5">
+                    <span class="text-slate-500 dark:text-slate-400">Pan & Zoom Canvas (நகர்த்து / பெரிதாக்கு)</span>
+                    <kbd class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono font-bold">Drag / Scroll Wheel</kbd>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Non-blocking Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Application Logic -->
+    <script>
+        /**
+         * Thinking Flow - Interactive Offline-First Mind Map Application
+         * Supports rich nodes (Markdown notes, Code snippets, Base64/URL Images),
+         * Tree/Radial/Freeform layouts, LocalStorage auto-save, JSON Backup,
+         * Firebase Firestore (Spark Plan), and Google Drive API sync.
+         */
+
+        // --- Constants & Color Palette ---
+        const BRANCH_COLORS = [
+            { name: 'Indigo', hex: '#6366f1' },
+            { name: 'Emerald', hex: '#10b981' },
+            { name: 'Amber', hex: '#f59e0b' },
+            { name: 'Rose', hex: '#f43f5e' },
+            { name: 'Cyan', hex: '#06b6d4' },
+            { name: 'Purple', hex: '#a855f7' }
+        ];
+
+        const STATUS_BADGES = {
+            'Idea': { icon: '💡', bg: 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30' },
+            'In Progress': { icon: '⚡', bg: 'bg-blue-500/15 text-blue-600 dark:text-blue-300 border-blue-500/30' },
+            'Done': { icon: '✅', bg: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30' },
+            'Hardware': { icon: '🔧', bg: 'bg-orange-500/15 text-orange-600 dark:text-orange-300 border-orange-500/30' },
+            'Code': { icon: '💻', bg: 'bg-purple-500/15 text-purple-600 dark:text-purple-300 border-purple-500/30' },
+            'Research': { icon: '🔬', bg: 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-300 border-cyan-500/30' }
+        };
+
+        const STORAGE_KEY = 'thinking_flow_mindmap_v1';
+        const CONFIG_STORAGE_KEY = 'thinking_flow_cloud_config_v1';
+
+        // --- Sample Project Workflow Data (Pre-loaded on first visit) ---
+        function createSampleMindMap() {
+            return {
+                title: 'Smart IoT & AI Project Flow',
+                layout: 'tree',
+                nodes: [
+                    {
+                        id: 'root',
+                        parentId: null,
+                        title: 'Smart Agri-Monitor System • வேளாண் திட்டம்',
+                        status: 'In Progress',
+                        color: '#6366f1',
+                        x: 120,
+                        y: 320,
+                        notes: '### Core Vision (திட்டத்தின் நோக்கம்)\nBuild an **offline-resilient soil & micro-climate telemetry system** with cloud sync.\n\n- Edge node on ESP32\n- Real-time moisture & NPK analytics\n- Bilingual farmer dashboard',
+                        codeLang: 'javascript',
+                        code: '// Telemetry payload schema\nconst sensorPacket = {\n  deviceId: "NODE_ERODE_01",\n  soilMoisture: 42.8,\n  tempC: 29.4,\n  timestamp: Date.now()\n};',
+                        image: ''
+                    },
+                    {
+                        id: 'node-hw',
+                        parentId: 'root',
+                        title: '1. Hardware & Sensors (வன்பொருள்)',
+                        status: 'Hardware',
+                        color: '#f59e0b',
+                        x: 460,
+                        y: 140,
+                        notes: '### Components List\n- **MCU:** ESP32-S3 DevKit\n- **Soil Sensor:** Capacitive v2.0 (Corrosion resistant)\n- **Power:** 18650 Li-Ion + 5W Solar Panel',
+                        codeLang: 'cpp',
+                        code: '#include <Arduino.h>\n#define SOIL_PIN 34\n\nvoid setup() {\n  Serial.begin(115200);\n  pinMode(SOIL_PIN, INPUT);\n}\n\nvoid loop() {\n  int raw = analogRead(SOIL_PIN);\n  float pct = map(raw, 4095, 1200, 0, 100);\n  Serial.printf("Moisture: %.1f%%\\n", pct);\n  delay(2000);\n}',
+                        image: 'https://placehold.co/600x320/1e293b/38bdf8?text=ESP32+%2B+Capacitive+Soil+Sensor+Wiring'
+                    },
+                    {
+                        id: 'node-code',
+                        parentId: 'root',
+                        title: '2. Cloud & Sync Architecture',
+                        status: 'Code',
+                        color: '#10b981',
+                        x: 460,
+                        y: 340,
+                        notes: '### Dual Storage Strategy\n1. **Local Edge Buffer:** Store readings in SPIFFS when Wi-Fi drops.\n2. **Firebase Firestore:** Sync live status to mobile web app.\n3. **Google Drive:** Weekly JSON/CSV archive.',
+                        codeLang: 'python',
+                        code: 'def calculate_irrigation_need(moisture_pct, temp_c):\n    """Determine valve trigger duration in seconds"""\n    if moisture_pct < 30.0:\n        factor = 1.2 if temp_c > 32 else 1.0\n        return int((35.0 - moisture_pct) * 15 * factor)\n    return 0',
+                        image: ''
+                    },
+                    {
+                        id: 'node-ui',
+                        parentId: 'root',
+                        title: '3. Field Testing & Milestones',
+                        status: 'Done',
+                        color: '#a855f7',
+                        x: 460,
+                        y: 530,
+                        notes: '### Completed Verification\n- [x] Waterproof IP65 enclosure tested\n- [x] Deep-sleep current measured at `48 µA`\n- [ ] Deploy Node #2 in North Sector',
+                        codeLang: 'bash',
+                        code: '# Flash firmware & monitor serial output\npio run --target upload && pio device monitor -b 115200',
+                        image: ''
+                    },
+                    {
+                        id: 'node-sub-1',
+                        parentId: 'node-hw',
+                        title: 'Solar MPPT Charger Circuit',
+                        status: 'Idea',
+                        color: '#f59e0b',
+                        x: 800,
+                        y: 90,
+                        notes: 'Use CN3791 MPPT controller IC tuned for 6V solar panels to maximize charging efficiency during cloudy mornings.',
+                        codeLang: 'javascript',
+                        code: '',
+                        image: ''
+                    }
+                ]
+            };
+        }
+
+        // --- Global Application State ---
+        let state = {
+            mindMap: null,
+            selectedNodeId: 'root',
+            viewport: { x: 40, y: 40, scale: 1 },
+            isPanning: false,
+            panStart: { x: 0, y: 0 },
+            draggedNodeId: null,
+            dragOffset: { x: 0, y: 0 },
+            hasDraggedMoved: false,
+            searchQuery: '',
+            isMarkdownPreview: false,
+            firebaseApp: null,
+            firebaseUser: null,
+            gdriveAccessToken: null
+        };
+
+        // --- DOM Element References ---
+        const canvasViewport = document.getElementById('canvasViewport');
+        const canvasWorld = document.getElementById('canvasWorld');
+        const connectionsLayer = document.getElementById('connectionsLayer');
+        const nodesLayer = document.getElementById('nodesLayer');
+        const mapTitleInput = document.getElementById('mapTitleInput');
+        const saveStatusBadge = document.getElementById('saveStatusBadge');
+        const zoomLevelLabel = document.getElementById('zoomLevelLabel');
+        const inspectorPanel = document.getElementById('nodeInspectorPanel');
+
+        // --- Initialization ---
+        function initApp() {
+            loadFromLocalStorage();
+            initColorSwatches();
+            bindEvents();
+            lucide.createIcons();
+
+            // Apply initial layout if needed and render
+            if (state.mindMap.layout !== 'freeform') {
+                applyAutoLayout(state.mindMap.layout, false);
+            }
+            renderAll();
+            centerMapOnCanvas(false);
+            loadSavedCloudConfigs();
+        }
+
+        // --- Toast Notification System (Replaces alert/confirm) ---
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            const colors = {
+                info: 'bg-slate-900 dark:bg-slate-800 text-white border-slate-700',
+                success: 'bg-emerald-600 text-white border-emerald-500',
+                error: 'bg-rose-600 text-white border-rose-500'
+            };
+            toast.className = `pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-xl border shadow-xl text-xs font-semibold transform transition-all duration-300 translate-y-2 opacity-0 ${colors[type] || colors.info}`;
+            toast.innerHTML = `<span>${message}</span>`;
+            container.appendChild(toast);
+
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // --- Persistence: LocalStorage Auto-Save ---
+        function loadFromLocalStorage() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (parsed && Array.isArray(parsed.nodes) && parsed.nodes.length > 0) {
+                        state.mindMap = parsed;
+                        mapTitleInput.value = parsed.title || 'Project Thinking Flow';
+                        state.selectedNodeId = parsed.nodes[0].id;
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to parse saved mind map:', e);
+            }
+            state.mindMap = createSampleMindMap();
+            mapTitleInput.value = state.mindMap.title;
+            saveToLocalStorage();
+        }
+
+        let saveTimeout = null;
+        function saveToLocalStorage() {
+            saveStatusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span><span>Saving...</span>`;
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                try {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.mindMap));
+                    saveStatusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span><span>Offline Auto-Saved • சேமிக்கப்பட்டது</span>`;
+                } catch (err) {
+                    saveStatusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span><span>Storage Full (Export JSON!)</span>`;
+                    showToast('Browser storage full! Please export JSON backup.', 'error');
+                }
+            }, 250);
+        }
+
+        // --- Layout Algorithms (Tree, Radial, Freeform) ---
+        function applyAutoLayout(mode, animate = true) {
+            state.mindMap.layout = mode;
+            updateLayoutButtonsUI(mode);
+
+            if (mode === 'freeform') {
+                saveToLocalStorage();
+                return;
+            }
+
+            if (animate) {
+                canvasWorld.classList.add('layout-animating');
+                setTimeout(() => canvasWorld.classList.remove('layout-animating'), 400);
+            }
+
+            const nodes = state.mindMap.nodes;
+            const root = nodes.find(n => !n.parentId) || nodes[0];
+            if (!root) return;
+
+            // Build adjacency map
+            const childrenMap = {};
+            nodes.forEach(n => childrenMap[n.id] = []);
+            nodes.forEach(n => {
+                if (n.parentId && childrenMap[n.parentId]) {
+                    childrenMap[n.parentId].push(n);
+                }
+            });
+
+            if (mode === 'tree') {
+                const levelGapX = 330;
+                const siblingGapY = 135;
+                let currentY = 100;
+
+                function layoutSubtree(node, depth) {
+                    const kids = childrenMap[node.id] || [];
+                    node.x = 100 + depth * levelGapX;
+
+                    if (kids.length === 0) {
+                        node.y = currentY;
+                        currentY += siblingGapY;
+                    } else {
+                        kids.forEach(child => layoutSubtree(child, depth + 1));
+                        const firstY = kids[0].y;
+                        const lastY = kids[kids.length - 1].y;
+                        node.y = (firstY + lastY) / 2;
+                    }
+                }
+                layoutSubtree(root, 0);
+            } else if (mode === 'radial') {
+                const centerX = 600;
+                const centerY = 450;
+                root.x = centerX;
+                root.y = centerY;
+
+                function countLeaves(node) {
+                    const kids = childrenMap[node.id] || [];
+                    if (kids.length === 0) return 1;
+                    return kids.reduce((sum, k) => sum + countLeaves(k), 0);
+                }
+
+                function layoutRadial(node, depth, startAngle, endAngle) {
+                    const kids = childrenMap[node.id] || [];
+                    if (kids.length === 0) return;
+
+                    const radius = depth * 290;
+                    const totalLeaves = kids.reduce((sum, k) => sum + countLeaves(k), 0);
+                    let angleCursor = startAngle;
+
+                    kids.forEach(child => {
+                        const share = countLeaves(child) / totalLeaves;
+                        const sweep = (endAngle - startAngle) * share;
+                        const midAngle = angleCursor + sweep / 2;
+
+                        child.x = centerX + Math.cos(midAngle) * radius;
+                        child.y = centerY + Math.sin(midAngle) * radius;
+
+                        layoutRadial(child, depth + 1, angleCursor, angleCursor + sweep);
+                        angleCursor += sweep;
+                    });
+                }
+                layoutRadial(root, 1, 0, Math.PI * 2);
+            }
+
+            renderAll();
+            saveToLocalStorage();
+        }
+
+        function updateLayoutButtonsUI(activeMode) {
+            document.querySelectorAll('.layout-btn').forEach(btn => {
+                const isMatch = btn.dataset.layout === activeMode;
+                if (isMatch) {
+                    btn.className = 'layout-btn px-2.5 py-1 rounded-lg bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400 flex items-center gap-1 transition font-semibold';
+                } else {
+                    btn.className = 'layout-btn px-2.5 py-1 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 transition';
+                }
+            });
+        }
+
+        // --- Rendering Engine (Nodes + SVG Bezier Connections) ---
+        function renderAll() {
+            renderNodes();
+            renderConnections();
+            lucide.createIcons();
+        }
+
+        function renderNodes() {
+            nodesLayer.innerHTML = '';
+            const query = state.searchQuery.trim().toLowerCase();
+
+            state.mindMap.nodes.forEach(node => {
+                const isSelected = node.id === state.selectedNodeId;
+                const isRoot = !node.parentId;
+                const statusMeta = STATUS_BADGES[node.status] || STATUS_BADGES['Idea'];
+
+                // Search highlight check
+                const matchesSearch = !query ||
+                    node.title.toLowerCase().includes(query) ||
+                    (node.notes && node.notes.toLowerCase().includes(query)) ||
+                    (node.code && node.code.toLowerCase().includes(query)) ||
+                    (node.status && node.status.toLowerCase().includes(query));
+
+                const el = document.createElement('div');
+                el.dataset.id = node.id;
+                el.style.transform = `translate(${node.x}px, ${node.y}px)`;
+                el.style.borderLeftColor = node.color || '#6366f1';
+
+                el.className = `mind-node absolute top-0 left-0 w-64 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 border-l-4 p-3.5 shadow-lg cursor-pointer select-none transition-opacity duration-200 ${
+                    isSelected ? 'node-selected ring-2 ring-indigo-500/60 z-10' : 'hover:border-slate-300 dark:hover:border-slate-700'
+                } ${!matchesSearch ? 'opacity-25' : 'opacity-100'} ${isRoot ? 'ring-1 ring-indigo-500/30' : ''}`;
+
+                // Attachment Badges
+                const hasNotes = node.notes && node.notes.trim().length > 0;
+                const hasCode = node.code && node.code.trim().length > 0;
+                const hasImage = node.image && node.image.trim().length > 0;
+
+                el.innerHTML = `
+                    <div class="flex items-center justify-between gap-2 mb-1.5">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${statusMeta.bg}">
+                            <span>${statusMeta.icon}</span>
+                            <span>${node.status}</span>
+                        </span>
+                        <div class="flex items-center gap-1.5 text-slate-400">
+                            ${hasNotes ? '<i data-lucide="file-text" class="w-3.5 h-3.5 text-sky-400" title="Has Notes"></i>' : ''}
+                            ${hasCode ? '<i data-lucide="code-2" class="w-3.5 h-3.5 text-emerald-400" title="Has Code"></i>' : ''}
+                            ${hasImage ? '<i data-lucide="image" class="w-3.5 h-3.5 text-amber-400" title="Has Image"></i>' : ''}
+                        </div>
+                    </div>
+                    <div class="font-bold text-sm text-slate-800 dark:text-slate-100 leading-snug line-clamp-2">
+                        ${escapeHtml(node.title || 'Untitled Node')}
+                    </div>
+                    ${hasImage ? `
+                        <div class="mt-2 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 h-20">
+                            <img src="${escapeHtml(node.image)}" alt="Thumbnail" onerror="this.style.display='none'" class="w-full h-full object-cover" />
+                        </div>
+                    ` : ''}
+                    ${hasNotes && !hasImage ? `
+                        <p class="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                            ${escapeHtml(node.notes.replace(/[#*`>-]/g, '').trim())}
+                        </p>
+                    ` : ''}
+                `;
+
+                // Node Pointer Events (Drag vs Click)
+                el.addEventListener('pointerdown', (e) => handleNodePointerDown(e, node.id));
+                nodesLayer.appendChild(el);
+            });
+        }
+
+        function renderConnections() {
+            connectionsLayer.innerHTML = '';
+            const nodeMap = new Map(state.mindMap.nodes.map(n => [n.id, n]));
+
+            state.mindMap.nodes.forEach(node => {
+                if (!node.parentId) return;
+                const parent = nodeMap.get(node.parentId);
+                if (!parent) return;
+
+                // Node card approximate dimensions for anchor calculation
+                const nodeWidth = 256;
+                const parentEl = nodesLayer.querySelector(`[data-id="${parent.id}"]`);
+                const childEl = nodesLayer.querySelector(`[data-id="${node.id}"]`);
+                const pHeight = parentEl ? parentEl.offsetHeight : 84;
+                const cHeight = childEl ? childEl.offsetHeight : 84;
+
+                let startX, startY, endX, endY, pathD;
+
+                if (state.mindMap.layout === 'radial') {
+                    startX = parent.x + nodeWidth / 2;
+                    startY = parent.y + pHeight / 2;
+                    endX = node.x + nodeWidth / 2;
+                    endY = node.y + cHeight / 2;
+                    const midX = (startX + endX) / 2;
+                    const midY = (startY + endY) / 2;
+                    pathD = `M ${startX} ${startY} Q ${midX} ${startY}, ${endX} ${endY}`;
+                } else {
+                    // Horizontal cubic bezier curve
+                    const isChildRight = node.x >= parent.x;
+                    startX = isChildRight ? parent.x + nodeWidth : parent.x;
+                    startY = parent.y + pHeight / 2;
+                    endX = isChildRight ? node.x : node.x + nodeWidth;
+                    endY = node.y + cHeight / 2;
+
+                    const deltaX = Math.abs(endX - startX) * 0.5;
+                    const cp1X = isChildRight ? startX + deltaX : startX - deltaX;
+                    const cp2X = isChildRight ? endX - deltaX : endX + deltaX;
+                    pathD = `M ${startX} ${startY} C ${cp1X} ${startY}, ${cp2X} ${endY}, ${endX} ${endY}`;
+                }
+
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', pathD);
+                path.setAttribute('fill', 'none');
+                path.setAttribute('stroke', node.color || '#6366f1');
+                path.setAttribute('stroke-width', '2.5');
+                path.setAttribute('stroke-opacity', '0.65');
+                path.setAttribute('class', 'connector-path');
+                connectionsLayer.appendChild(path);
+            });
+        }
+
+        // --- Node CRUD Operations ---
+        function addChildNode(parentId) {
+            const parent = state.mindMap.nodes.find(n => n.id === parentId) || state.mindMap.nodes[0];
+            if (!parent) return;
+
+            const newId = 'node-' + Date.now().toString(36);
+            const randomColor = BRANCH_COLORS[Math.floor(Math.random() * BRANCH_COLORS.length)].hex;
+            const newNode = {
+                id: newId,
+                parentId: parent.id,
+                title: 'New Idea • புதிய குறிப்பு',
+                status: 'Idea',
+                color: parent.parentId ? parent.color : randomColor,
+                x: parent.x + 320,
+                y: parent.y + (Math.random() * 120 - 60),
+                notes: '',
+                codeLang: 'javascript',
+                code: '',
+                image: ''
+            };
+
+            state.mindMap.nodes.push(newNode);
+            state.selectedNodeId = newId;
+
+            if (state.mindMap.layout !== 'freeform') {
+                applyAutoLayout(state.mindMap.layout, true);
+            } else {
+                renderAll();
+                saveToLocalStorage();
+            }
+
+            openInspector(newId);
+            showToast('Child node added (துணை கிளை சேர்க்கப்பட்டது)', 'success');
+        }
+
+        function addSiblingNode(nodeId) {
+            const current = state.mindMap.nodes.find(n => n.id === nodeId);
+            if (!current) return;
+            if (!current.parentId) {
+                // If root is selected, add a child instead
+                addChildNode(current.id);
+                return;
+            }
+            addChildNode(current.parentId);
+        }
+
+        function deleteNode(nodeId) {
+            const target = state.mindMap.nodes.find(n => n.id === nodeId);
+            if (!target) return;
+            if (!target.parentId) {
+                showToast('Cannot delete the root node! (மூலக் கிளையை நீக்க முடியாது)', 'error');
+                return;
+            }
+
+            // Recursively collect node and all descendants
+            const toDelete = new Set([nodeId]);
+            let added = true;
+            while (added) {
+                added = false;
+                state.mindMap.nodes.forEach(n => {
+                    if (n.parentId && toDelete.has(n.parentId) && !toDelete.has(n.id)) {
+                        toDelete.add(n.id);
+                        added = true;
+                    }
+                });
+            }
+
+            state.mindMap.nodes = state.mindMap.nodes.filter(n => !toDelete.has(n.id));
+            state.selectedNodeId = target.parentId;
+            closeInspector();
+
+            if (state.mindMap.layout !== 'freeform') {
+                applyAutoLayout(state.mindMap.layout, true);
+            } else {
+                renderAll();
+                saveToLocalStorage();
+            }
+            showToast('Node removed (கிளை நீக்கப்பட்டது)', 'info');
+        }
+
+        // --- Canvas Pan, Zoom & Node Dragging ---
+        function updateWorldTransform() {
+            const { x, y, scale } = state.viewport;
+            canvasWorld.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+            zoomLevelLabel.textContent = `${Math.round(scale * 100)}%`;
+        }
+
+        function centerMapOnCanvas(animate = true) {
+            const nodes = state.mindMap.nodes;
+            if (!nodes.length) return;
+
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            nodes.forEach(n => {
+                minX = Math.min(minX, n.x);
+                minY = Math.min(minY, n.y);
+                maxX = Math.max(maxX, n.x + 260);
+                maxY = Math.max(maxY, n.y + 100);
+            });
+
+            const mapCenterX = (minX + maxX) / 2;
+            const mapCenterY = (minY + maxY) / 2;
+            const rect = canvasViewport.getBoundingClientRect();
+
+            state.viewport.scale = 1;
+            state.viewport.x = rect.width / 2 - mapCenterX;
+            state.viewport.y = rect.height / 2 - mapCenterY;
+
+            if (animate) {
+                canvasWorld.style.transition = 'transform 0.3s ease-out';
+                setTimeout(() => canvasWorld.style.transition = '', 320);
+            }
+            updateWorldTransform();
+        }
+
+        function handleNodePointerDown(e, nodeId) {
+            e.stopPropagation();
+            state.selectedNodeId = nodeId;
+            state.draggedNodeId = nodeId;
+            state.hasDraggedMoved = false;
+
+            const node = state.mindMap.nodes.find(n => n.id === nodeId);
+            state.dragOffset = {
+                x: (e.clientX - state.viewport.x) / state.viewport.scale - node.x,
+                y: (e.clientY - state.viewport.y) / state.viewport.scale - node.y
+            };
+            renderAll();
+        }
+
+        // --- Rich Node Details Side-Panel Logic ---
+        function initColorSwatches() {
+            const container = document.getElementById('colorPalettePicker');
+            container.innerHTML = '';
+            BRANCH_COLORS.forEach(c => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'w-5 h-5 rounded-full border-2 border-white dark:border-slate-900 shadow-sm hover:scale-110 transition';
+                btn.style.backgroundColor = c.hex;
+                btn.title = c.name;
+                btn.addEventListener('click', () => {
+                    const node = getSelectedNode();
+                    if (!node) return;
+                    node.color = c.hex;
+                    document.getElementById('inspectorColorDot').style.backgroundColor = c.hex;
+                    renderAll();
+                    saveToLocalStorage();
+                });
+                container.appendChild(btn);
+            });
+        }
+
+        function getSelectedNode() {
+            return state.mindMap.nodes.find(n => n.id === state.selectedNodeId);
+        }
+
+        function openInspector(nodeId) {
+            state.selectedNodeId = nodeId;
+            const node = getSelectedNode();
+            if (!node) return;
+
+            document.getElementById('nodeTitleInput').value = node.title || '';
+            document.getElementById('nodeStatusSelect').value = node.status || 'Idea';
+            document.getElementById('inspectorColorDot').style.backgroundColor = node.color || '#6366f1';
+            document.getElementById('nodeNotesInput').value = node.notes || '';
+            document.getElementById('nodeCodeLangSelect').value = node.codeLang || 'javascript';
+            document.getElementById('nodeCodeInput').value = node.code || '';
+            document.getElementById('nodeImageUrlInput').value = node.image || '';
+            document.getElementById('nodeMetaInfo').textContent = `ID: ${node.id}`;
+
+            updateCodePreview();
+            updateMarkdownPreview();
+            updateImagePreview(node.image);
+
+            inspectorPanel.classList.remove('translate-x-[110%]');
+            renderAll();
+        }
+
+        function closeInspector() {
+            inspectorPanel.classList.add('translate-x-[110%]');
+        }
+
+        function updateCodePreview() {
+            const code = document.getElementById('nodeCodeInput').value || '// No code snippet yet';
+            const lang = document.getElementById('nodeCodeLangSelect').value;
+            const previewEl = document.getElementById('nodeCodePreview');
+            document.getElementById('codeLangBadge').textContent = lang;
+            previewEl.className = `language-${lang}`;
+            previewEl.textContent = code;
+            if (window.hljs) {
+                delete previewEl.dataset.highlighted;
+                hljs.highlightElement(previewEl);
+            }
+        }
+
+        function updateMarkdownPreview() {
+            const raw = document.getElementById('nodeNotesInput').value || '*No notes added yet.*';
+            const previewBox = document.getElementById('nodeNotesPreview');
+            if (window.marked) {
+                previewBox.innerHTML = marked.parse(raw);
+            } else {
+                previewBox.textContent = raw;
+            }
+        }
+
+        function updateImagePreview(src) {
+            const container = document.getElementById('nodeImagePreviewContainer');
+            const img = document.getElementById('nodeImagePreview');
+            if (src && src.trim()) {
+                img.src = src.trim();
+                container.classList.remove('hidden');
+            } else {
+                img.src = '';
+                container.classList.add('hidden');
+            }
+        }
+
+        // Compress local uploaded images so LocalStorage stays fast & lightweight
+        function compressAndAttachImage(file) {
+            if (!file || !file.type.startsWith('image/')) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const maxDim = 800;
+                    let w = img.width;
+                    let h = img.height;
+                    if (w > maxDim || h > maxDim) {
+                        if (w > h) {
+                            h = Math.round((h * maxDim) / w);
+                            w = maxDim;
+                        } else {
+                            w = Math.round((w * maxDim) / h);
+                            h = maxDim;
+                        }
+                    }
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
+
+                    const node = getSelectedNode();
+                    if (node) {
+                        node.image = dataUrl;
+                        document.getElementById('nodeImageUrlInput').value = dataUrl;
+                        updateImagePreview(dataUrl);
+                        renderAll();
+                        saveToLocalStorage();
+                        showToast('Image attached & compressed!', 'success');
+                    }
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // --- Zero-Cost Backend: JSON Export / Import ---
+        function exportMindMapJson() {
+            const dataStr = JSON.stringify(state.mindMap, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const safeName = (state.mindMap.title || 'mindmap').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+            a.href = url;
+            a.download = `${safeName}-${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Mind Map JSON exported!', 'success');
+        }
+
+        function importMindMapJson(file) {
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (!imported || !Array.isArray(imported.nodes) || imported.nodes.length === 0) {
+                        throw new Error('Invalid Mind Map JSON structure');
+                    }
+                    state.mindMap = imported;
+                    mapTitleInput.value = imported.title || 'Imported Mind Map';
+                    state.selectedNodeId = imported.nodes[0].id;
+                    renderAll();
+                    centerMapOnCanvas(true);
+                    saveToLocalStorage();
+                    document.getElementById('syncModal').classList.add('hidden');
+                    showToast('Mind Map loaded successfully!', 'success');
+                } catch (err) {
+                    showToast('Invalid JSON file format!', 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // --- Zero-Cost Backend: Firebase Firestore (Spark Plan) ---
+        function loadSavedCloudConfigs() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(CONFIG_STORAGE_KEY) || '{}');
+                if (saved.firebaseConfig) {
+                    document.getElementById('firebaseConfigInput').value = saved.firebaseConfig;
+                }
+                if (saved.gdriveClientId) {
+                    document.getElementById('gdriveClientIdInput').value = saved.gdriveClientId;
+                }
+            } catch (e) {}
+        }
+
+        function saveCloudConfigField(key, val) {
+            try {
+                const saved = JSON.parse(localStorage.getItem(CONFIG_STORAGE_KEY) || '{}');
+                saved[key] = val;
+                localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(saved));
+            } catch (e) {}
+        }
+
+        async function connectFirebaseAndAuth() {
+            const rawConfig = document.getElementById('firebaseConfigInput').value.trim();
+            const statusEl = document.getElementById('firebaseStatusText');
+            if (!rawConfig) {
+                showToast('Please paste your Firebase Config JSON first.', 'error');
+                return;
+            }
+
+            try {
+                const config = JSON.parse(rawConfig);
+                saveCloudConfigField('firebaseConfig', rawConfig);
+
+                if (!firebase.apps.length) {
+                    state.firebaseApp = firebase.initializeApp(config);
+                } else {
+                    state.firebaseApp = firebase.app();
+                }
+
+                const provider = new firebase.auth.GoogleAuthProvider();
+                const result = await firebase.auth().signInWithPopup(provider);
+                state.firebaseUser = result.user;
+
+                statusEl.textContent = `Connected as ${result.user.email} ✅`;
+                statusEl.className = 'text-xs text-emerald-500 font-semibold';
+                document.getElementById('pushFirebaseBtn').disabled = false;
+                document.getElementById('pullFirebaseBtn').disabled = false;
+                showToast('Signed in to Firebase!', 'success');
+            } catch (err) {
+                console.error(err);
+                statusEl.textContent = `Error: ${err.message}`;
+                statusEl.className = 'text-xs text-rose-500';
+                showToast('Firebase connection failed. Check config & authorized domains.', 'error');
+            }
+        }
+
+        async function pushToFirestore() {
+            if (!state.firebaseUser) return;
+            const statusEl = document.getElementById('firebaseStatusText');
+            try {
+                statusEl.textContent = 'Uploading to Firestore...';
+                const db = firebase.firestore();
+                await db.collection('mindmaps').doc(state.firebaseUser.uid).set({
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    mindMap: state.mindMap
+                });
+                statusEl.textContent = `Synced to Firestore at ${new Date().toLocaleTimeString()} ✅`;
+                showToast('Mind Map saved to Firebase Firestore!', 'success');
+            } catch (err) {
+                statusEl.textContent = `Sync Error: ${err.message}`;
+                showToast('Firestore write failed. Check security rules.', 'error');
+            }
+        }
+
+        async function pullFromFirestore() {
+            if (!state.firebaseUser) return;
+            const statusEl = document.getElementById('firebaseStatusText');
+            try {
+                statusEl.textContent = 'Fetching from Firestore...';
+                const db = firebase.firestore();
+                const doc = await db.collection('mindmaps').doc(state.firebaseUser.uid).get();
+                if (doc.exists && doc.data().mindMap) {
+                    state.mindMap = doc.data().mindMap;
+                    mapTitleInput.value = state.mindMap.title || 'Cloud Mind Map';
+                    state.selectedNodeId = state.mindMap.nodes[0].id;
+                    renderAll();
+                    centerMapOnCanvas(true);
+                    saveToLocalStorage();
+                    statusEl.textContent = 'Loaded latest map from Firestore ✅';
+                    showToast('Mind Map pulled from Firebase!', 'success');
+                } else {
+                    statusEl.textContent = 'No saved map found in Firestore yet.';
+                    showToast('No cloud backup found for this account.', 'info');
+                }
+            } catch (err) {
+                statusEl.textContent = `Fetch Error: ${err.message}`;
+                showToast('Failed to pull from Firestore.', 'error');
+            }
+        }
+
+        // --- Zero-Cost Backend: Google Drive API (MindMap_Flows Folder) ---
+        function authorizeGoogleDrive() {
+            const clientId = document.getElementById('gdriveClientIdInput').value.trim();
+            const statusEl = document.getElementById('gdriveStatusText');
+            if (!clientId) {
+                showToast('Enter your Google OAuth 2.0 Client ID first.', 'error');
+                return;
+            }
+            saveCloudConfigField('gdriveClientId', clientId);
+
+            if (!window.google || !google.accounts || !google.accounts.oauth2) {
+                showToast('Google Identity Services script still loading. Try again in a moment.', 'error');
+                return;
+            }
+
+            const tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: clientId,
+                scope: 'https://www.googleapis.com/auth/drive.file',
+                callback: (tokenResponse) => {
+                    if (tokenResponse && tokenResponse.access_token) {
+                        state.gdriveAccessToken = tokenResponse.access_token;
+                        statusEl.textContent = 'Google Drive Authorized ✅ (Ready to sync MindMap_Flows)';
+                        statusEl.className = 'text-xs text-emerald-500 font-semibold';
+                        document.getElementById('saveToGdriveBtn').disabled = false;
+                        document.getElementById('loadFromGdriveBtn').disabled = false;
+                        showToast('Google Drive connected!', 'success');
+                    }
+                }
+            });
+            tokenClient.requestAccessToken({ prompt: 'consent' });
+        }
+
+        async function getOrCreateDriveFolder(folderName = 'MindMap_Flows') {
+            const query = encodeURIComponent(`name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+            const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name)`, {
+                headers: { Authorization: `Bearer ${state.gdriveAccessToken}` }
+            });
+            const searchData = await searchRes.json();
+            if (searchData.files && searchData.files.length > 0) {
+                return searchData.files[0].id;
+            }
+
+            // Create folder if not found
+            const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${state.gdriveAccessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: folderName,
+                    mimeType: 'application/vnd.google-apps.folder'
+                })
+            });
+            const folder = await createRes.json();
+            return folder.id;
+        }
+
+        async function saveMindMapToGoogleDrive() {
+            if (!state.gdriveAccessToken) return;
+            const statusEl = document.getElementById('gdriveStatusText');
+            try {
+                statusEl.textContent = 'Saving to Google Drive /MindMap_Flows...';
+                const folderId = await getOrCreateDriveFolder('MindMap_Flows');
+                const fileName = `${(state.mindMap.title || 'thinking-flow').replace(/[^a-z0-9-_]/gi, '_')}.json`;
+
+                const metadata = {
+                    name: fileName,
+                    mimeType: 'application/json',
+                    parents: [folderId]
+                };
+
+                const form = new FormData();
+                form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+                form.append('file', new Blob([JSON.stringify(state.mindMap, null, 2)], { type: 'application/json' }));
+
+                const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${state.gdriveAccessToken}` },
+                    body: form
+                });
+
+                if (!uploadRes.ok) throw new Error('Drive upload rejected');
+                statusEl.textContent = `Saved "${fileName}" to Drive/MindMap_Flows ✅`;
+                showToast('Saved to Google Drive!', 'success');
+            } catch (err) {
+                statusEl.textContent = `Drive Error: ${err.message}`;
+                showToast('Failed to save to Google Drive.', 'error');
+            }
+        }
+
+        async function loadLatestFromGoogleDrive() {
+            if (!state.gdriveAccessToken) return;
+            const statusEl = document.getElementById('gdriveStatusText');
+            try {
+                statusEl.textContent = 'Searching MindMap_Flows folder...';
+                const folderId = await getOrCreateDriveFolder('MindMap_Flows');
+                const query = encodeURIComponent(`'${folderId}' in parents and mimeType='application/json' and trashed=false`);
+                const listRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&orderBy=modifiedTime desc&pageSize=1&fields=files(id,name)`, {
+                    headers: { Authorization: `Bearer ${state.gdriveAccessToken}` }
+                });
+                const listData = await listRes.json();
+                if (!listData.files || listData.files.length === 0) {
+                    statusEl.textContent = 'No .json mind maps found in MindMap_Flows folder.';
+                    showToast('Folder MindMap_Flows is empty.', 'info');
+                    return;
+                }
+
+                const latestFile = listData.files[0];
+                const fileRes = await fetch(`https://www.googleapis.com/drive/v3/files/${latestFile.id}?alt=media`, {
+                    headers: { Authorization: `Bearer ${state.gdriveAccessToken}` }
+                });
+                const imported = await fileRes.json();
+                state.mindMap = imported;
+                mapTitleInput.value = imported.title || latestFile.name;
+                state.selectedNodeId = imported.nodes[0].id;
+                renderAll();
+                centerMapOnCanvas(true);
+                saveToLocalStorage();
+                statusEl.textContent = `Loaded "${latestFile.name}" from Drive ✅`;
+                showToast('Loaded latest map from Google Drive!', 'success');
+            } catch (err) {
+                statusEl.textContent = `Drive Load Error: ${err.message}`;
+                showToast('Failed to load from Google Drive.', 'error');
+            }
+        }
+
+        // --- Event Listeners Binding ---
+        function bindEvents() {
+            // Map Title Change
+            mapTitleInput.addEventListener('input', (e) => {
+                state.mindMap.title = e.target.value;
+                saveToLocalStorage();
+            });
+
+            // Canvas Panning & Node Dragging
+            canvasViewport.addEventListener('pointerdown', (e) => {
+                if (e.target.closest('.mind-node')) return;
+                state.isPanning = true;
+                state.panStart = {
+                    x: e.clientX - state.viewport.x,
+                    y: e.clientY - state.viewport.y
+                };
+            });
+
+            window.addEventListener('pointermove', (e) => {
+                if (state.draggedNodeId) {
+                    state.hasDraggedMoved = true;
+                    const node = state.mindMap.nodes.find(n => n.id === state.draggedNodeId);
+                    if (node) {
+                        node.x = (e.clientX - state.viewport.x) / state.viewport.scale - state.dragOffset.x;
+                        node.y = (e.clientY - state.viewport.y) / state.viewport.scale - state.dragOffset.y;
+                        // Switch to freeform if manually dragged
+                        if (state.mindMap.layout !== 'freeform') {
+                            state.mindMap.layout = 'freeform';
+                            updateLayoutButtonsUI('freeform');
+                        }
+                        const el = nodesLayer.querySelector(`[data-id="${node.id}"]`);
+                        if (el) el.style.transform = `translate(${node.x}px, ${node.y}px)`;
+                        renderConnections();
+                    }
+                } else if (state.isPanning) {
+                    state.viewport.x = e.clientX - state.panStart.x;
+                    state.viewport.y = e.clientY - state.panStart.y;
+                    updateWorldTransform();
+                }
+            });
+
+            window.addEventListener('pointerup', () => {
+                if (state.draggedNodeId) {
+                    if (!state.hasDraggedMoved) {
+                        openInspector(state.draggedNodeId);
+                    } else {
+                        saveToLocalStorage();
+                    }
+                    state.draggedNodeId = null;
+                }
+                state.isPanning = false;
+            });
+
+            // Mouse Wheel Zoom
+            canvasViewport.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+                const newScale = Math.min(2.2, Math.max(0.35, state.viewport.scale * zoomFactor));
+
+                const rect = canvasViewport.getBoundingClientRect();
+                const cursorX = e.clientX - rect.left;
+                const cursorY = e.clientY - rect.top;
+
+                state.viewport.x = cursorX - (cursorX - state.viewport.x) * (newScale / state.viewport.scale);
+                state.viewport.y = cursorY - (cursorY - state.viewport.y) * (newScale / state.viewport.scale);
+                state.viewport.scale = newScale;
+                updateWorldTransform();
+            }, { passive: false });
+
+            // Zoom & Center Buttons
+            document.getElementById('zoomInBtn').addEventListener('click', () => {
+                state.viewport.scale = Math.min(2.2, state.viewport.scale + 0.15);
+                updateWorldTransform();
+            });
+            document.getElementById('zoomOutBtn').addEventListener('click', () => {
+                state.viewport.scale = Math.max(0.35, state.viewport.scale - 0.15);
+                updateWorldTransform();
+            });
+            document.getElementById('centerViewBtn').addEventListener('click', () => centerMapOnCanvas(true));
+
+            // Layout Switch Buttons
+            document.querySelectorAll('.layout-btn').forEach(btn => {
+                btn.addEventListener('click', () => applyAutoLayout(btn.dataset.layout, true));
+            });
+
+            // Quick Action Dock Buttons
+            document.getElementById('addChildQuickBtn').addEventListener('click', () => addChildNode(state.selectedNodeId));
+            document.getElementById('addSiblingQuickBtn').addEventListener('click', () => addSiblingNode(state.selectedNodeId));
+            document.getElementById('deleteNodeQuickBtn').addEventListener('click', () => deleteNode(state.selectedNodeId));
+
+            // Search / Filter
+            const handleSearch = (val) => {
+                state.searchQuery = val;
+                document.getElementById('clearSearchBtn').classList.toggle('hidden', !val);
+                renderNodes();
+            };
+            document.getElementById('searchNodesInput').addEventListener('input', (e) => handleSearch(e.target.value));
+            document.getElementById('mobileSearchInput').addEventListener('input', (e) => handleSearch(e.target.value));
+            document.getElementById('clearSearchBtn').addEventListener('click', () => {
+                document.getElementById('searchNodesInput').value = '';
+                handleSearch('');
+            });
+
+            // Theme Toggle
+            document.getElementById('themeToggleBtn').addEventListener('click', () => {
+                const html = document.documentElement;
+                const isDark = html.classList.toggle('dark');
+                canvasViewport.classList.toggle('canvas-grid-dark', isDark);
+                canvasViewport.classList.toggle('canvas-grid-light', !isDark);
+            });
+
+            // Reset Sample Map
+            document.getElementById('resetSampleBtn').addEventListener('click', () => {
+                state.mindMap = createSampleMindMap();
+                mapTitleInput.value = state.mindMap.title;
+                state.selectedNodeId = 'root';
+                closeInspector();
+                applyAutoLayout('tree', true);
+                centerMapOnCanvas(true);
+                showToast('Sample project workflow restored!', 'info');
+            });
+
+            // Side-Panel Inspector Controls
+            document.getElementById('closeInspectorBtn').addEventListener('click', closeInspector);
+            document.getElementById('panelAddChildBtn').addEventListener('click', () => addChildNode(state.selectedNodeId));
+            document.getElementById('panelDeleteNodeBtn').addEventListener('click', () => deleteNode(state.selectedNodeId));
+
+            document.getElementById('nodeTitleInput').addEventListener('input', (e) => {
+                const node = getSelectedNode();
+                if (node) {
+                    node.title = e.target.value;
+                    renderAll();
+                    saveToLocalStorage();
+                }
+            });
+
+            document.getElementById('nodeStatusSelect').addEventListener('change', (e) => {
+                const node = getSelectedNode();
+                if (node) {
+                    node.status = e.target.value;
+                    renderAll();
+                    saveToLocalStorage();
+                }
+            });
+
+            // Inspector Tabs (Notes / Code / Image)
+            document.querySelectorAll('.inspector-tab').forEach(tabBtn => {
+                tabBtn.addEventListener('click', () => {
+                    const target = tabBtn.dataset.tab;
+                    document.querySelectorAll('.inspector-tab').forEach(b => {
+                        b.className = 'inspector-tab flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center justify-center gap-1.5';
+                    });
+                    tabBtn.className = 'inspector-tab flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm flex items-center justify-center gap-1.5';
+
+                    document.querySelectorAll('.tab-content').forEach(panel => panel.classList.add('hidden'));
+                    document.getElementById(`tab-${target}`).classList.remove('hidden');
+                });
+            });
+
+            // Notes & Markdown Preview
+            document.getElementById('nodeNotesInput').addEventListener('input', (e) => {
+                const node = getSelectedNode();
+                if (node) {
+                    node.notes = e.target.value;
+                    updateMarkdownPreview();
+                    renderAll();
+                    saveToLocalStorage();
+                }
+            });
+
+            document.getElementById('toggleMarkdownPreviewBtn').addEventListener('click', () => {
+                state.isMarkdownPreview = !state.isMarkdownPreview;
+                document.getElementById('nodeNotesInput').classList.toggle('hidden', state.isMarkdownPreview);
+                document.getElementById('nodeNotesPreview').classList.toggle('hidden', !state.isMarkdownPreview);
+                document.getElementById('mdPreviewLabel').textContent = state.isMarkdownPreview ? 'Edit' : 'Preview';
+                updateMarkdownPreview();
+            });
+
+            // Code Snippet & One-Click Copy
+            document.getElementById('nodeCodeInput').addEventListener('input', (e) => {
+                const node = getSelectedNode();
+                if (node) {
+                    node.code = e.target.value;
+                    updateCodePreview();
+                    renderAll();
+                    saveToLocalStorage();
+                }
+            });
+
+            document.getElementById('nodeCodeLangSelect').addEventListener('change', (e) => {
+                const node = getSelectedNode();
+                if (node) {
+                    node.codeLang = e.target.value;
+                    updateCodePreview();
+                    saveToLocalStorage();
+                }
+            });
+
+            document.getElementById('copyCodeSnippetBtn').addEventListener('click', () => {
+                const codeArea = document.getElementById('nodeCodeInput');
+                codeArea.select();
+                document.execCommand('copy');
+                showToast('Code copied to clipboard!', 'success');
+            });
+
+            // Image URL & Local File Upload
+            document.getElementById('nodeImageUrlInput').addEventListener('input', (e) => {
+                const node = getSelectedNode();
+                if (node) {
+                    node.image = e.target.value;
+                    updateImagePreview(node.image);
+                    renderAll();
+                    saveToLocalStorage();
+                }
+            });
+
+            document.getElementById('nodeImageFileInput').addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    compressAndAttachImage(e.target.files[0]);
+                }
+            });
+
+            document.getElementById('clearImageBtn').addEventListener('click', () => {
+                const node = getSelectedNode();
+                if (node) {
+                    node.image = '';
+                    document.getElementById('nodeImageUrlInput').value = '';
+                    updateImagePreview('');
+                    renderAll();
+                    saveToLocalStorage();
+                }
+            });
+
+            // Sync Modal Events
+            const syncModal = document.getElementById('syncModal');
+            document.getElementById('openSyncModalBtn').addEventListener('click', () => {
+                syncModal.classList.remove('hidden');
+                syncModal.classList.add('flex');
+            });
+            document.getElementById('closeSyncModalBtn').addEventListener('click', () => {
+                syncModal.classList.add('hidden');
+                syncModal.classList.remove('flex');
+            });
+
+            document.querySelectorAll('.sync-tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const target = btn.dataset.synctab;
+                    document.querySelectorAll('.sync-tab-btn').forEach(b => {
+                        b.className = 'sync-tab-btn py-3 px-4 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200';
+                    });
+                    btn.className = 'sync-tab-btn py-3 px-4 text-xs font-bold border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400';
+
+                    document.querySelectorAll('.sync-tab-panel').forEach(p => p.classList.add('hidden'));
+                    document.getElementById(`synctab-${target}`).classList.remove('hidden');
+                });
+            });
+
+            document.getElementById('exportJsonBtn').addEventListener('click', exportMindMapJson);
+            document.getElementById('importJsonInput').addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    importMindMapJson(e.target.files[0]);
+                }
+            });
+
+            document.getElementById('connectFirebaseBtn').addEventListener('click', connectFirebaseAndAuth);
+            document.getElementById('pushFirebaseBtn').addEventListener('click', pushToFirestore);
+            document.getElementById('pullFirebaseBtn').addEventListener('click', pullFromFirestore);
+
+            document.getElementById('authorizeGdriveBtn').addEventListener('click', authorizeGoogleDrive);
+            document.getElementById('saveToGdriveBtn').addEventListener('click', saveMindMapToGoogleDrive);
+            document.getElementById('loadFromGdriveBtn').addEventListener('click', loadLatestFromGoogleDrive);
+
+            // Help Modal Events
+            const helpModal = document.getElementById('helpModal');
+            document.getElementById('openHelpBtn').addEventListener('click', () => {
+                helpModal.classList.remove('hidden');
+                helpModal.classList.add('flex');
+            });
+            document.getElementById('closeHelpModalBtn').addEventListener('click', () => {
+                helpModal.classList.add('hidden');
+                helpModal.classList.remove('flex');
+            });
+
+            // Keyboard Shortcuts (Disabled while typing inside inputs/textareas)
+            window.addEventListener('keydown', (e) => {
+                const tag = document.activeElement.tagName.toLowerCase();
+                if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    addChildNode(state.selectedNodeId);
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addSiblingNode(state.selectedNodeId);
+                } else if (e.key === 'Delete' || e.key === 'Backspace') {
+                    e.preventDefault();
+                    deleteNode(state.selectedNodeId);
+                } else if (e.key === 'Escape') {
+                    closeInspector();
+                    syncModal.classList.add('hidden');
+                    helpModal.classList.add('hidden');
+                }
+            });
+        }
+
+        // Utility: Escape HTML to prevent XSS in node previews
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        // Start Application on Window Load
+        window.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
