@@ -1,0 +1,2073 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thinking Flow • Mind Map & Project Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { fontFamily: {
+                sans: ['Inter','Noto Sans Tamil','sans-serif'],
+                mono: ['JetBrains Mono','Fira Code','monospace'],
+            }}}
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Tamil:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js" async defer></script>
+
+    <style>
+        body { overflow: hidden; user-select: none; -webkit-tap-highlight-color: transparent; }
+        .canvas-grid-light { background-color:#f8fafc; background-image:radial-gradient(#cbd5e1 1.25px, transparent 1.25px); background-size:24px 24px; }
+        .canvas-grid-dark  { background-color:#090d16; background-image:radial-gradient(#1e293b 1.25px, transparent 1.25px); background-size:24px 24px; }
+        .layout-animating .mind-node { transition: transform .35s cubic-bezier(.22,1,.36,1); }
+        .layout-animating .connector-path { transition: d .35s cubic-bezier(.22,1,.36,1); }
+        ::-webkit-scrollbar { width:6px; height:6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(148,163,184,.3); border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,.5); }
+        .markdown-body h1 { font-size:1.25rem; font-weight:700; margin-bottom:.5rem; }
+        .markdown-body h2 { font-size:1.1rem; font-weight:600; margin-top:.75rem; margin-bottom:.4rem; }
+        .markdown-body p { margin-bottom:.5rem; line-height:1.5; }
+        .markdown-body ul { list-style-type:disc; padding-left:1.25rem; margin-bottom:.5rem; }
+        .markdown-body ol { list-style-type:decimal; padding-left:1.25rem; margin-bottom:.5rem; }
+        .markdown-body code { background: rgba(148,163,184,.2); padding:.1rem .3rem; border-radius:.25rem; font-family:'JetBrains Mono',monospace; font-size:.85em; }
+        .markdown-body blockquote { border-left:3px solid #6366f1; padding-left:.75rem; opacity:.85; font-style:italic; }
+        .node-selected { box-shadow: 0 0 0 3px rgba(99,102,241,.5), 0 12px 28px -6px rgba(0,0,0,.35); }
+        .map-tab-pill { transition: all .15s ease; }
+        .map-tab-pill.active { background: rgb(99 102 241 / 1); color: white; box-shadow: 0 2px 8px rgba(99,102,241,.3); }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-[#090d16] text-slate-800 dark:text-slate-100 font-sans antialiased h-screen w-screen flex flex-col">
+
+<!-- ========== HEADER ========== -->
+<header class="fixed top-3 left-3 right-3 z-30 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+    <!-- Brand -->
+    <div class="pointer-events-auto flex items-center gap-2.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 px-3.5 py-2 rounded-2xl shadow-lg">
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-inner">
+            <i data-lucide="network" class="w-4 h-4"></i>
+        </div>
+        <div class="flex flex-col">
+            <input id="mapTitleInput" type="text" value="Project Thinking Flow"
+                class="bg-transparent font-bold text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-indigo-500/50 rounded px-1 -ml-1 w-36 sm:w-52 truncate"
+                title="Rename active map" />
+            <span id="saveStatusBadge" class="text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Auto-Saved</span>
+            </span>
+        </div>
+    </div>
+
+    <!-- Center Search & Layout -->
+    <div class="pointer-events-auto hidden md:flex items-center gap-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-2xl shadow-lg">
+        <div class="relative flex items-center">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-2.5"></i>
+            <input id="searchNodesInput" type="text" placeholder="Search / தேடுக..."
+                class="pl-8 pr-7 py-1.5 text-xs bg-slate-100 dark:bg-slate-800/80 border border-transparent focus:border-indigo-500 rounded-xl focus:outline-none w-44 lg:w-56 transition-all" />
+            <button id="clearSearchBtn" class="hidden absolute right-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+        </div>
+        <div class="h-5 w-[1px] bg-slate-200 dark:bg-slate-700 mx-1"></div>
+        <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-medium">
+            <button data-layout="tree" class="layout-btn px-2.5 py-1 rounded-lg bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400 flex items-center gap-1 transition">
+                <i data-lucide="git-fork" class="w-3.5 h-3.5"></i><span>Tree</span>
+            </button>
+            <button data-layout="radial" class="layout-btn px-2.5 py-1 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 transition">
+                <i data-lucide="sun" class="w-3.5 h-3.5"></i><span>Radial</span>
+            </button>
+            <button data-layout="freeform" class="layout-btn px-2.5 py-1 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 transition">
+                <i data-lucide="move" class="w-3.5 h-3.5"></i><span>Free</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Right Action Controls -->
+    <div class="pointer-events-auto flex items-center gap-1.5 sm:gap-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 px-2.5 py-1.5 rounded-2xl shadow-lg">
+        
+        <!-- Cloud -->
+        <button id="openSyncModalBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition active:scale-95" title="Cloud & Backup">
+            <i data-lucide="cloud" class="w-3.5 h-3.5"></i><span class="hidden sm:inline">Cloud</span>
+        </button>
+
+        <div class="h-5 w-[1px] bg-slate-200 dark:bg-slate-700 mx-0.5"></div>
+
+        <!-- New File / Delete / Restore -->
+        <button id="headerNewMapBtn" class="p-2 rounded-xl text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition" title="New File / புதிய கோப்பு">
+            <i data-lucide="file-plus" class="w-4 h-4"></i>
+        </button>
+        <button id="headerDeleteMapBtn" class="p-2 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition" title="Delete Current Map / நீக்கு">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+        </button>
+        <button id="headerRestoreBtn" class="relative p-2 rounded-xl text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition" title="Restore Bin / மீட்டெடு">
+            <i data-lucide="history" class="w-4 h-4"></i>
+            <span id="headerTrashBadge" class="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center hidden">0</span>
+        </button>
+
+        <div class="h-5 w-[1px] bg-slate-200 dark:bg-slate-700 mx-0.5"></div>
+
+        <!-- Map Manager, Sample, Help, Theme -->
+        <button id="openMapManagerBtn" class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="All Maps">
+            <i data-lucide="folder-open" class="w-4 h-4"></i>
+        </button>
+        <button id="resetSampleBtn" class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Load Sample">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+        </button>
+        <button id="openHelpBtn" class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Shortcuts">
+            <i data-lucide="help-circle" class="w-4 h-4"></i>
+        </button>
+        <button id="themeToggleBtn" class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Toggle Theme">
+            <i data-lucide="sun" class="w-4 h-4 hidden dark:block text-amber-400"></i>
+            <i data-lucide="moon" class="w-4 h-4 block dark:hidden text-indigo-600"></i>
+        </button>
+    </div>
+</header>
+
+<!-- ========== MAP TABS BAR ========== -->
+<div class="fixed top-[4.75rem] left-3 right-3 z-25 pointer-events-none">
+    <div class="pointer-events-auto flex items-center gap-1.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 px-2 py-1.5 rounded-xl shadow-lg overflow-x-auto">
+        <div id="mapTabsList" class="flex items-center gap-1.5 flex-1 min-w-0 overflow-x-auto"></div>
+        <button id="newMapBtn" class="shrink-0 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1 transition active:scale-95" title="New Map">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i><span class="hidden sm:inline">New</span>
+        </button>
+    </div>
+</div>
+
+<!-- Mobile search bar -->
+<div class="md:hidden fixed top-[8.25rem] left-3 right-3 z-20 flex items-center justify-between gap-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-xl shadow">
+    <input id="mobileSearchInput" type="text" placeholder="Search / தேடுக..." class="bg-slate-100 dark:bg-slate-800 text-xs px-2.5 py-1.5 rounded-lg w-1/2 focus:outline-none">
+    <div class="flex items-center gap-1 text-[11px]">
+        <button data-layout="tree" class="layout-btn px-2 py-1 rounded bg-indigo-600 text-white">Tree</button>
+        <button data-layout="radial" class="layout-btn px-2 py-1 rounded bg-slate-200 dark:bg-slate-800">Radial</button>
+        <button data-layout="freeform" class="layout-btn px-2 py-1 rounded bg-slate-200 dark:bg-slate-800">Free</button>
+    </div>
+</div>
+
+<!-- ========== CANVAS ========== -->
+<main id="canvasViewport" class="relative flex-1 w-full h-full overflow-hidden canvas-grid-dark cursor-grab active:cursor-grabbing">
+    <div id="canvasWorld" class="absolute top-0 left-0 origin-top-left will-change-transform" style="transform: translate(0px,0px) scale(1);">
+        <svg id="connectionsLayer" class="absolute top-0 left-0 overflow-visible pointer-events-none" width="1" height="1"></svg>
+        <div id="nodesLayer" class="relative"></div>
+    </div>
+
+    <div class="fixed bottom-4 left-4 z-20 flex flex-wrap items-center gap-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 p-1.5 rounded-2xl shadow-xl">
+        <button id="addChildQuickBtn" class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition active:scale-95" title="Add Child (Tab)">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i><span>+ Child <span class="opacity-75 hidden sm:inline">(Tab)</span></span>
+        </button>
+        <button id="addSiblingQuickBtn" class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition active:scale-95" title="Add Sibling (Enter)">
+            <i data-lucide="git-commit" class="w-4 h-4"></i><span>+ Sibling <span class="opacity-75 hidden sm:inline">(Enter)</span></span>
+        </button>
+        <button id="deleteNodeQuickBtn" class="p-2 rounded-xl text-rose-500 hover:bg-rose-500/10 transition active:scale-95" title="Move Node to Bin">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+        </button>
+        <div class="h-5 w-[1px] bg-slate-200 dark:bg-slate-700 mx-0.5"></div>
+        <button id="zoomOutBtn" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300" title="Zoom Out"><i data-lucide="zoom-out" class="w-4 h-4"></i></button>
+        <span id="zoomLevelLabel" class="text-xs font-mono font-medium w-11 text-center">100%</span>
+        <button id="zoomInBtn" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300" title="Zoom In"><i data-lucide="zoom-in" class="w-4 h-4"></i></button>
+        <button id="centerViewBtn" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-indigo-500" title="Center Map"><i data-lucide="crosshair" class="w-4 h-4"></i></button>
+    </div>
+</main>
+
+<!-- ========== INSPECTOR PANEL ========== -->
+<aside id="nodeInspectorPanel" class="fixed top-3 bottom-3 right-3 w-[calc(100%-1.5rem)] sm:w-[440px] z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl flex flex-col transform translate-x-[110%] transition-transform duration-300 ease-out">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800">
+        <div class="flex items-center gap-2">
+            <span id="inspectorColorDot" class="w-3.5 h-3.5 rounded-full bg-indigo-500 shadow"></span>
+            <h2 class="font-bold text-sm tracking-wide uppercase text-slate-500 dark:text-slate-400">Node Details</h2>
+        </div>
+        <div class="flex items-center gap-1">
+            <button id="panelAddChildBtn" class="p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 text-xs font-medium flex items-center gap-1" title="Add Sub-node">
+                <i data-lucide="plus" class="w-4 h-4"></i> Sub-node
+            </button>
+            <button id="closeInspectorBtn" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Timestamps row -->
+    <div class="grid grid-cols-2 gap-2 px-4 py-2 border-b border-slate-200 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-950/50">
+        <div class="flex items-center gap-1.5"><i data-lucide="calendar-plus" class="w-3 h-3"></i><span>Created: <strong id="nodeCreatedAt">--</strong></span></div>
+        <div class="flex items-center gap-1.5"><i data-lucide="calendar-clock" class="w-3 h-3"></i><span>Modified: <strong id="nodeModifiedAt">--</strong></span></div>
+    </div>
+
+    <div class="flex-1 overflow-y-auto p-5 space-y-5 select-text">
+        <div>
+            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Node Title / தலைப்பு</label>
+            <input id="nodeTitleInput" type="text" placeholder="Enter node title..."
+                class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 focus:border-indigo-500 focus:outline-none font-semibold text-base" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Status / நிலை</label>
+                <select id="nodeStatusSelect" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-xs font-medium focus:border-indigo-500 focus:outline-none">
+                    <option value="Idea">💡 Idea</option>
+                    <option value="In Progress">⚡ In Progress</option>
+                    <option value="Done">✅ Done</option>
+                    <option value="Hardware">🔧 Hardware</option>
+                    <option value="Code">💻 Code</option>
+                    <option value="Research">🔬 Research</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Branch Color / நிறம்</label>
+                <div id="colorPalettePicker" class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/90 px-2 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 overflow-x-auto"></div>
+            </div>
+        </div>
+
+        <div>
+            <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-3">
+                <button data-tab="notes" class="inspector-tab flex-1 py-1.5 px-1 rounded-lg text-xs font-semibold bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm flex items-center justify-center gap-1">
+                    <i data-lucide="file-text" class="w-3.5 h-3.5"></i><span>Notes</span>
+                </button>
+                <button data-tab="code" class="inspector-tab flex-1 py-1.5 px-1 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center justify-center gap-1">
+                    <i data-lucide="code-2" class="w-3.5 h-3.5"></i><span>Code</span>
+                </button>
+                <button data-tab="media" class="inspector-tab flex-1 py-1.5 px-1 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center justify-center gap-1">
+                    <i data-lucide="image" class="w-3.5 h-3.5"></i><span>Media</span>
+                </button>
+                <button data-tab="git" class="inspector-tab flex-1 py-1.5 px-1 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center justify-center gap-1">
+                    <i data-lucide="git-commit" class="w-3.5 h-3.5"></i><span>Git</span>
+                </button>
+            </div>
+
+            <!-- TAB: Notes -->
+            <div id="tab-notes" class="tab-content space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs text-slate-500 dark:text-slate-400">Markdown supported</span>
+                    <button id="toggleMarkdownPreviewBtn" class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+                        <i data-lucide="eye" class="w-3.5 h-3.5"></i><span id="mdPreviewLabel">Preview</span>
+                    </button>
+                </div>
+                <textarea id="nodeNotesInput" rows="8" placeholder="Write project thoughts, architecture steps, or bilingual notes here..."
+                    class="w-full p-3 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 focus:border-indigo-500 focus:outline-none text-sm leading-relaxed resize-y"></textarea>
+                <div id="nodeNotesPreview" class="hidden markdown-body p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-sm min-h-[180px]"></div>
+            </div>
+
+            <!-- TAB: Code -->
+            <div id="tab-code" class="tab-content hidden space-y-2.5">
+                <div class="flex items-center justify-between gap-2">
+                    <div class="flex-1 flex gap-1.5">
+                        <select id="nodeCodeLangSelect" class="flex-1 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono"></select>
+                        <button id="addLanguageBtn" class="px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs hover:bg-slate-200 dark:hover:bg-slate-700 font-bold" title="Add custom language">+</button>
+                    </div>
+                    <button id="copyCodeSnippetBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition">
+                        <i data-lucide="copy" class="w-3.5 h-3.5"></i><span>Copy</span>
+                    </button>
+                </div>
+                <textarea id="nodeCodeInput" rows="8" spellcheck="false" placeholder="// Paste your firmware, API, or algorithm snippet..."
+                    class="w-full p-3 rounded-xl bg-slate-950 text-emerald-400 font-mono text-xs leading-relaxed border border-slate-800 focus:border-indigo-500 focus:outline-none resize-y"></textarea>
+                <div class="rounded-xl overflow-hidden border border-slate-800">
+                    <div class="bg-slate-800/90 px-3 py-1 text-[10px] font-mono uppercase tracking-wider text-slate-400 flex justify-between">
+                        <span>Preview</span><span id="codeLangBadge">javascript</span>
+                    </div>
+                    <pre class="m-0 p-3 bg-[#282c34] text-xs overflow-x-auto"><code id="nodeCodePreview" class="language-javascript"></code></pre>
+                </div>
+            </div>
+
+            <!-- TAB: Media -->
+            <div id="tab-media" class="tab-content hidden space-y-3">
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Image URL</label>
+                    <div class="flex gap-2">
+                        <input id="nodeImageUrlInput" type="url" placeholder="https://example.com/diagram.png"
+                            class="flex-1 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs focus:border-indigo-500 focus:outline-none" />
+                        <button id="clearImageBtn" class="px-2.5 py-2 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 text-xs font-medium">Clear</button>
+                    </div>
+                </div>
+                <div class="relative border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-4 text-center hover:border-indigo-500 transition cursor-pointer" id="imageDropZone">
+                    <input id="nodeImageFileInput" type="file" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                    <i data-lucide="upload-cloud" class="w-7 h-7 mx-auto text-indigo-500 mb-1"></i>
+                    <p class="text-xs font-semibold">Click or Drop Image (Auto-Compressed)</p>
+                </div>
+                <div id="nodeImagePreviewContainer" class="hidden rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-950">
+                    <img id="nodeImagePreview" src="" alt="Node Attachment" class="w-full max-h-64 object-contain mx-auto" />
+                </div>
+            </div>
+
+            <!-- TAB: Git -->
+            <div id="tab-git" class="tab-content hidden space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Commit / Track Note</label>
+                    <div class="flex gap-1.5">
+                        <select id="gitCommitType" class="px-2 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs">
+                            <option value="feat">✨ feat</option>
+                            <option value="code">💻 code</option>
+                            <option value="fix">🐛 fix</option>
+                            <option value="note">📝 note</option>
+                        </select>
+                        <input id="gitCommitMsg" type="text" placeholder="e.g., Added MUX logic..."
+                            class="flex-1 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs focus:border-indigo-500 focus:outline-none" />
+                        <button id="addGitCommitBtn" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold whitespace-nowrap flex items-center gap-1">
+                            <i data-lucide="git-commit" class="w-3.5 h-3.5"></i><span>Commit</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400">History Log</label>
+                    <div id="gitHistoryList" class="space-y-1.5"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="px-5 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+        <span id="nodeMetaInfo">ID: --</span>
+        <button id="panelDeleteNodeBtn" class="text-rose-500 hover:underline flex items-center gap-1 font-medium">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Move to Bin
+        </button>
+    </div>
+</aside>
+
+<!-- ========== SYNC MODAL ========== -->
+<div id="syncModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center"><i data-lucide="cloud-cog" class="w-5 h-5"></i></div>
+                <div>
+                    <h3 class="font-bold text-base">Cloud Sync & Backup</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">JSON • Firebase Firestore • Google Drive</p>
+                </div>
+            </div>
+            <button id="closeSyncModalBtn" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <div class="flex border-b border-slate-200 dark:border-slate-800 px-6 bg-slate-50/50 dark:bg-slate-950/30 overflow-x-auto">
+            <button data-synctab="json" class="sync-tab-btn py-3 px-4 text-xs font-bold border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400 whitespace-nowrap">1. JSON Backup</button>
+            <button data-synctab="firebase" class="sync-tab-btn py-3 px-4 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 whitespace-nowrap">2. Firebase</button>
+            <button data-synctab="gdrive" class="sync-tab-btn py-3 px-4 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 whitespace-nowrap">3. Google Drive</button>
+        </div>
+        <div class="p-6 overflow-y-auto space-y-5 text-sm select-text">
+            <div id="synctab-json" class="sync-tab-panel space-y-4">
+                <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs leading-relaxed">
+                    <strong>Zero-Cost Backup:</strong> Auto-saved in browser LocalStorage. Export as portable <code>.json</code> (includes all maps, tabs, notes, code, images, trash, git logs) to store in Google Drive or share across devices.
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <button id="exportJsonBtn" class="flex flex-col items-center justify-center gap-2 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:bg-indigo-500/5 transition">
+                        <i data-lucide="download" class="w-7 h-7 text-indigo-500"></i>
+                        <span class="font-bold text-sm">Export All (.JSON)</span>
+                        <span class="text-xs text-slate-400 text-center">All maps + trash + settings</span>
+                    </button>
+                    <label class="flex flex-col items-center justify-center gap-2 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-emerald-500 hover:bg-emerald-500/5 transition cursor-pointer">
+                        <i data-lucide="upload" class="w-7 h-7 text-emerald-500"></i>
+                        <span class="font-bold text-sm">Import (.JSON)</span>
+                        <span class="text-xs text-slate-400 text-center">Replace current workspace</span>
+                        <input id="importJsonInput" type="file" accept=".json,application/json" class="hidden" />
+                    </label>
+                </div>
+                <button id="downloadFullBackupBtn" class="w-full px-4 py-2.5 rounded-xl bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 dark:hover:bg-slate-600 text-white text-xs font-semibold flex items-center justify-center gap-2 transition">
+                    <i data-lucide="hard-drive-download" class="w-4 h-4"></i><span>Save & Download Full Backup</span>
+                </button>
+            </div>
+
+            <div id="synctab-firebase" class="sync-tab-panel hidden space-y-4">
+                <div class="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-200 space-y-1">
+                    <p class="font-bold">Firebase Free Spark Plan Setup:</p>
+                    <p>1. Create a free project at <code>console.firebase.google.com</code> — enable <strong>Authentication (Google)</strong> + <strong>Firestore Database</strong>.</p>
+                    <p>2. Paste your Web App <code>firebaseConfig</code> JSON below.</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold mb-1">Firebase Web Config JSON</label>
+                    <textarea id="firebaseConfigInput" rows="5" placeholder='{"apiKey":"AIza...","authDomain":"your-app.firebaseapp.com","projectId":"your-app",...}'
+                        class="w-full p-3 rounded-xl bg-slate-100 dark:bg-slate-950 font-mono text-xs border border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:outline-none"></textarea>
+                </div>
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <button id="connectFirebaseBtn" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold flex items-center gap-1.5">
+                        <i data-lucide="flame" class="w-4 h-4"></i><span>Connect & Sign In</span>
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <button id="pushFirebaseBtn" disabled class="px-3 py-2 rounded-xl bg-indigo-600 disabled:opacity-40 text-white text-xs font-semibold">Push ↑</button>
+                        <button id="pullFirebaseBtn" disabled class="px-3 py-2 rounded-xl bg-emerald-600 disabled:opacity-40 text-white text-xs font-semibold">Pull ↓</button>
+                    </div>
+                </div>
+                <p id="firebaseStatusText" class="text-xs text-slate-400">Status: Not connected</p>
+            </div>
+
+            <div id="synctab-gdrive" class="sync-tab-panel hidden space-y-4">
+                <div class="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-800 dark:text-blue-200 space-y-1">
+                    <p class="font-bold">Google Drive Folder Sync (<code>MindMap_Flows</code>):</p>
+                    <p>1. Enable <strong>Google Drive API</strong> in Google Cloud Console and create an <strong>OAuth 2.0 Web Client ID</strong>.</p>
+                    <p>2. Add your current origin URL and paste your Client ID below.</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold mb-1">Google OAuth 2.0 Client ID</label>
+                    <input id="gdriveClientIdInput" type="text" placeholder="1234567890-abcdefg.apps.googleusercontent.com"
+                        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-950 font-mono text-xs border border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:outline-none" />
+                </div>
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <button id="authorizeGdriveBtn" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5">
+                        <i data-lucide="hard-drive" class="w-4 h-4"></i><span>Authorize Drive</span>
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <button id="saveToGdriveBtn" disabled class="px-3 py-2 rounded-xl bg-indigo-600 disabled:opacity-40 text-white text-xs font-semibold">Save ↑</button>
+                        <button id="loadFromGdriveBtn" disabled class="px-3 py-2 rounded-xl bg-emerald-600 disabled:opacity-40 text-white text-xs font-semibold">Load ↓</button>
+                    </div>
+                </div>
+                <p id="gdriveStatusText" class="text-xs text-slate-400">Status: Awaiting OAuth Client ID</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== MAP MANAGER + RESTORE MODAL ========== -->
+<div id="mapManagerModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center"><i data-lucide="folder-open" class="w-5 h-5"></i></div>
+                <div>
+                    <h3 class="font-bold text-base">All Maps & Restore Bin</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Open, rename, or restore deleted items</p>
+                </div>
+            </div>
+            <button id="closeMapManagerBtn" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <div class="p-6 overflow-y-auto space-y-4 select-text">
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Active Maps</h4>
+                    <button id="openDefaultColorsBtn" class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+                        <i data-lucide="palette" class="w-3.5 h-3.5"></i> Customize Status Colors
+                    </button>
+                </div>
+                <div id="mapManagerList" class="space-y-2"></div>
+            </div>
+            <div class="pt-4 border-t border-slate-200 dark:border-slate-800">
+                <div class="flex items-center justify-between mb-2">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Restore Bin (<span id="trashCount">0</span>)</h4>
+                    <button id="clearTrashBtn" class="text-xs font-semibold text-rose-500 hover:underline">Empty Bin</button>
+                </div>
+                <div id="restoreList" class="space-y-2"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== STATUS COLORS MODAL ========== -->
+<div id="defaultColorsModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between">
+            <h3 class="font-bold text-base flex items-center gap-2"><i data-lucide="palette" class="w-5 h-5 text-indigo-500"></i> Default Status Colors</h3>
+            <button id="closeDefaultColorsBtn" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+        <p class="text-xs text-slate-500 dark:text-slate-400">Colors auto-applied when you create or change a node's status.</p>
+        <div id="defaultColorsForm" class="space-y-2"></div>
+        <div class="flex items-center justify-between pt-2">
+            <button id="resetDefaultColorsBtn" class="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold">↺ Reset</button>
+            <button id="doneDefaultColorsBtn" class="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold">Done</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========== HELP MODAL ========== -->
+<div id="helpModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between">
+            <h3 class="font-bold text-base flex items-center gap-2"><i data-lucide="keyboard" class="w-5 h-5 text-indigo-500"></i> Shortcuts & Guide</h3>
+            <button id="closeHelpModalBtn" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+        <div class="space-y-2.5 text-xs">
+            <div class="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800"><span class="text-slate-500 dark:text-slate-400">Add Child Node</span><kbd class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono font-bold">Tab</kbd></div>
+            <div class="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800"><span class="text-slate-500 dark:text-slate-400">Add Sibling Node</span><kbd class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono font-bold">Enter</kbd></div>
+            <div class="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800"><span class="text-slate-500 dark:text-slate-400">Move Node to Bin</span><kbd class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono font-bold">Delete</kbd></div>
+            <div class="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800"><span class="text-slate-500 dark:text-slate-400">Open Editor</span><kbd class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono font-bold">Click</kbd></div>
+            <div class="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800"><span class="text-slate-500 dark:text-slate-400">Pan / Zoom</span><kbd class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono font-bold">Drag / Scroll</kbd></div>
+            <div class="flex justify-between py-1.5"><span class="text-slate-500 dark:text-slate-400">Close Modal</span><kbd class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono font-bold">Esc</kbd></div>
+        </div>
+    </div>
+</div>
+
+<div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+<!-- ========== APP LOGIC ========== -->
+<script>
+/* ========================================================================
+ *  Thinking Flow v4 — merged (v1 UI + v3 features)
+ * ======================================================================== */
+
+const DEFAULT_STATUS_COLORS = {
+    'Idea': '#eab308', 'Code': '#3b82f6', 'In Progress': '#f97316',
+    'Hardware': '#a855f7', 'Research': '#06b6d4', 'Done': '#22c55e'
+};
+const FIXED_PALETTE = [
+    { name: 'Idea Yellow', hex: '#eab308' }, { name: 'Code Blue', hex: '#3b82f6' },
+    { name: 'Done Green', hex: '#22c55e' },  { name: 'Alert Red', hex: '#ef4444' },
+    { name: 'Hardware Purple', hex: '#a855f7' }, { name: 'Cyan Sky', hex: '#06b6d4' },
+    { name: 'Orange', hex: '#f97316' },      { name: 'Pink', hex: '#ec4899' }
+];
+const DEFAULT_LANGUAGES = ['JavaScript','Python','HTML','CSS','C','C++','Verilog','Java','SQL','Bash / Termux','Arduino / ESP','JSON','Markdown'];
+const STATUS_BADGES = {
+    'Idea': { icon: '💡', bg: 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30' },
+    'In Progress': { icon: '⚡', bg: 'bg-blue-500/15 text-blue-600 dark:text-blue-300 border-blue-500/30' },
+    'Done': { icon: '✅', bg: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30' },
+    'Hardware': { icon: '🔧', bg: 'bg-orange-500/15 text-orange-600 dark:text-orange-300 border-orange-500/30' },
+    'Code': { icon: '💻', bg: 'bg-purple-500/15 text-purple-600 dark:text-purple-300 border-purple-500/30' },
+    'Research': { icon: '🔬', bg: 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-300 border-cyan-500/30' }
+};
+const MERGED_KEY = 'thinking_flow_merged_v4';
+const V3_KEY = 'thinking_flow_v3';
+const V1_KEY = 'thinking_flow_mindmap_v1';
+const CONFIG_KEY = 'thinking_flow_cloud_config_v1';
+
+let state = {
+    maps: [], activeMapId: null, openTabIds: [], trash: [],
+    statusColors: { ...DEFAULT_STATUS_COLORS }, languages: [...DEFAULT_LANGUAGES],
+    selectedNodeId: null,
+    viewport: { x: 40, y: 40, scale: 1 },
+    searchQuery: '', isMarkdownPreview: false, isDark: true,
+    isPanning: false, panStart: { x: 0, y: 0 },
+    draggedNodeId: null, dragOffset: { x: 0, y: 0 }, hasDraggedMoved: false,
+    firebaseApp: null, firebaseUser: null, gdriveAccessToken: null
+};
+
+const $ = (id) => document.getElementById(id);
+const canvasViewport = $('canvasViewport');
+const canvasWorld = $('canvasWorld');
+const connectionsLayer = $('connectionsLayer');
+const nodesLayer = $('nodesLayer');
+const mapTitleInput = $('mapTitleInput');
+const saveStatusBadge = $('saveStatusBadge');
+const zoomLevelLabel = $('zoomLevelLabel');
+const inspectorPanel = $('nodeInspectorPanel');
+
+function nowFormatted() {
+    const d = new Date();
+    return d.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) + ' ' +
+           d.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+}
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function showToast(msg, type = 'info') {
+    const container = $('toastContainer');
+    const t = document.createElement('div');
+    const colors = {
+        info: 'bg-slate-900 dark:bg-slate-800 text-white border-slate-700',
+        success: 'bg-emerald-600 text-white border-emerald-500',
+        error: 'bg-rose-600 text-white border-rose-500'
+    };
+    t.className = `pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-xl border shadow-xl text-xs font-semibold transform transition-all duration-300 translate-y-2 opacity-0 ${colors[type] || colors.info}`;
+    t.innerHTML = `<span>${escapeHtml(msg)}</span>`;
+    container.appendChild(t);
+    requestAnimationFrame(() => t.classList.remove('translate-y-2', 'opacity-0'));
+    setTimeout(() => {
+        t.classList.add('translate-y-2', 'opacity-0');
+        setTimeout(() => t.remove(), 300);
+    }, 3000);
+}
+
+function getActiveMap() {
+    return state.maps.find(m => m.id === state.activeMapId) || state.maps[0];
+}
+
+function touchActiveMap() {
+    const m = getActiveMap();
+    if (m) { m.modifiedAt = nowFormatted(); }
+}
+
+let saveTimeout = null;
+function saveToLocalStorage() {
+    saveStatusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span><span>Saving...</span>`;
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+        try {
+            const payload = {
+                maps: state.maps, activeMapId: state.activeMapId, openTabIds: state.openTabIds,
+                trash: state.trash, statusColors: state.statusColors, languages: state.languages,
+                selectedNodeId: state.selectedNodeId, viewport: state.viewport,
+                searchQuery: state.searchQuery, isDark: state.isDark
+            };
+            localStorage.setItem(MERGED_KEY, JSON.stringify(payload));
+            saveStatusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span><span>Auto-Saved • சேமிக்கப்பட்டது</span>`;
+            updateTrashBadge();
+        } catch (err) {
+            console.error(err);
+            saveStatusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span><span>Storage Full (Export!)</span>`;
+            showToast('Storage full! Export JSON backup.', 'error');
+        }
+    }, 250);
+}
+
+function updateTrashBadge() {
+    const badge = $('headerTrashBadge');
+    if (!badge) return;
+    if (state.trash.length > 0) {
+        badge.textContent = state.trash.length;
+        badge.classList.remove('hidden');
+    } else {
+        badge.classList.add('hidden');
+    }
+}
+
+function migrateV1(v1) {
+    const now = nowFormatted();
+    const mapId = 'map_' + Date.now();
+    const nodes = (v1.nodes || []).map(n => ({
+        ...n,
+        createdAt: n.createdAt || now, modifiedAt: n.modifiedAt || now,
+        gitLogs: n.gitLogs || [{ type: 'note', msg: 'Migrated from v1', time: now }]
+    }));
+    return {
+        maps: [{
+            id: mapId, title: v1.title || 'Migrated Map',
+            layout: v1.layout || 'tree', createdAt: now, modifiedAt: now, nodes
+        }],
+        activeMapId: mapId, openTabIds: [mapId], trash: [],
+        statusColors: { ...DEFAULT_STATUS_COLORS }, languages: [...DEFAULT_LANGUAGES],
+        selectedNodeId: nodes[0]?.id || null, viewport: { x: 40, y: 40, scale: 1 },
+        searchQuery: '', isDark: true
+    };
+}
+
+function migrateV3(v3) {
+    const now = nowFormatted();
+    const maps = (v3.maps || []).map(m => ({
+        id: m.id || 'map_' + Date.now() + Math.random().toString(36).slice(2),
+        title: m.title || 'Untitled Map',
+        layout: m.layout || 'tree',
+        createdAt: m.createdAt || now, modifiedAt: m.modifiedAt || now,
+        nodes: (m.nodes || []).map(n => ({
+            ...n,
+            createdAt: n.createdAt || now,
+            modifiedAt: n.modifiedAt || now,
+            gitLogs: n.gitLogs || []
+        }))
+    }));
+    return {
+        maps, activeMapId: v3.activeMapId || maps[0]?.id,
+        openTabIds: (v3.openTabIds && v3.openTabIds.length) ? v3.openTabIds : maps.map(m => m.id),
+        trash: v3.trash || [],
+        statusColors: { ...DEFAULT_STATUS_COLORS, ...(v3.statusColors || {}) },
+        languages: v3.languages && v3.languages.length ? v3.languages : [...DEFAULT_LANGUAGES],
+        selectedNodeId: v3.selectedNodeId || null,
+        viewport: v3.pan ? { x: v3.pan.x, y: v3.pan.y, scale: v3.zoom || 1 } : { x: 40, y: 40, scale: 1 },
+        searchQuery: '', isDark: v3.theme !== 'light'
+    };
+}
+
+function tryLoad() {
+    try {
+        const raw = localStorage.getItem(MERGED_KEY);
+        if (raw) { return JSON.parse(raw); }
+        const v3raw = localStorage.getItem(V3_KEY);
+        if (v3raw) { return migrateV3(JSON.parse(v3raw)); }
+        const v1raw = localStorage.getItem(V1_KEY);
+        if (v1raw) { return migrateV1(JSON.parse(v1raw)); }
+    } catch (e) { console.warn('Load error:', e); }
+    return null;
+}
+
+function createSampleMindMap() {
+    const now = nowFormatted();
+    const git0 = [{ type: 'feat', msg: 'Initialized project root', time: now }];
+    return {
+        id: 'map_' + Date.now(),
+        title: 'Smart IoT & AI Project Flow',
+        layout: 'tree', createdAt: now, modifiedAt: now,
+        nodes: [
+            { id:'root', parentId:null, title:'Smart Agri-Monitor System • வேளாண் திட்டம்', status:'In Progress', color:'#6366f1', x:120, y:320,
+              createdAt: now, modifiedAt: now,
+              notes:'### Core Vision\nBuild an **offline-resilient soil & micro-climate telemetry system** with cloud sync.\n\n- Edge node on ESP32\n- Real-time moisture & NPK analytics\n- Bilingual farmer dashboard',
+              codeLang:'JavaScript',
+              code:'// Telemetry payload schema\nconst sensorPacket = {\n  deviceId: "NODE_ERODE_01",\n  soilMoisture: 42.8,\n  tempC: 29.4,\n  timestamp: Date.now()\n};',
+              image:'', gitLogs: git0 },
+            { id:'node-hw', parentId:'root', title:'1. Hardware & Sensors (வன்பொருள்)', status:'Hardware', color:'#a855f7', x:460, y:140,
+              createdAt: now, modifiedAt: now,
+              notes:'### Components List\n- **MCU:** ESP32-S3 DevKit\n- **Soil Sensor:** Capacitive v2.0\n- **Power:** 18650 Li-Ion + 5W Solar Panel',
+              codeLang:'Arduino / ESP',
+              code:'#include <Arduino.h>\n#define SOIL_PIN 34\n\nvoid setup() { Serial.begin(115200); pinMode(SOIL_PIN, INPUT); }\n\nvoid loop() {\n  int raw = analogRead(SOIL_PIN);\n  float pct = map(raw, 4095, 1200, 0, 100);\n  Serial.printf("Moisture: %.1f%%\\n", pct);\n  delay(2000);\n}',
+              image:'https://placehold.co/600x320/1e293b/38bdf8?text=ESP32+Wiring', gitLogs: git0 },
+            { id:'node-code', parentId:'root', title:'2. Cloud & Sync Architecture', status:'Code', color:'#3b82f6', x:460, y:340,
+              createdAt: now, modifiedAt: now,
+              notes:'### Dual Storage Strategy\n1. **Local Edge Buffer:** SPIFFS when Wi-Fi drops.\n2. **Firestore:** live status sync.\n3. **Drive:** weekly JSON/CSV archive.',
+              codeLang:'Python',
+              code:'def calculate_irrigation_need(moisture_pct, temp_c):\n    if moisture_pct < 30.0:\n        factor = 1.2 if temp_c > 32 else 1.0\n        return int((35.0 - moisture_pct) * 15 * factor)\n    return 0',
+              image:'', gitLogs: git0 },
+            { id:'node-ui', parentId:'root', title:'3. Field Testing & Milestones', status:'Done', color:'#22c55e', x:460, y:530,
+              createdAt: now, modifiedAt: now,
+              notes:'### Completed Verification\n- [x] Waterproof IP65 enclosure tested\n- [x] Deep-sleep current `48 µA`\n- [ ] Deploy Node #2 in North Sector',
+              codeLang:'Bash / Termux',
+              code:'# Flash firmware & monitor serial\npio run --target upload && pio device monitor -b 115200',
+              image:'', gitLogs: git0 },
+            { id:'node-sub-1', parentId:'node-hw', title:'Solar MPPT Charger Circuit', status:'Idea', color:'#eab308', x:800, y:90,
+              createdAt: now, modifiedAt: now,
+              notes:'Use CN3791 MPPT controller IC tuned for 6V solar panels to maximize charging during cloudy mornings.',
+              codeLang:'JavaScript', code:'', image:'', gitLogs: git0 }
+        ]
+    };
+}
+
+function renderAll() {
+    renderNodes();
+    renderMapTabs();
+    renderTimestampUI();
+    if (window.lucide) lucide.createIcons();
+    
+    // Wait for the browser to paint the nodes & icons before drawing connections
+    requestAnimationFrame(() => {
+        renderConnections();
+    });
+}
+
+function renderTimestampUI() {
+    const m = getActiveMap();
+    if (document.activeElement !== mapTitleInput && m) mapTitleInput.value = m.title;
+}
+
+function renderMapTabs() {
+    const list = $('mapTabsList');
+    list.innerHTML = '';
+    state.openTabIds.forEach(id => {
+        const m = state.maps.find(x => x.id === id);
+        if (!m) return;
+        const isActive = id === state.activeMapId;
+        const pill = document.createElement('div');
+        pill.className = `map-tab-pill shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer whitespace-nowrap border border-slate-200 dark:border-slate-700 hover:border-indigo-400 ${isActive ? 'active border-indigo-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200'}`;
+        pill.innerHTML = `
+            <span class="truncate max-w-[120px]">${escapeHtml(m.title)}</span>
+            <button class="tab-close p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10" title="Close tab">
+                <i data-lucide="x" class="w-3 h-3"></i>
+            </button>`;
+        pill.addEventListener('click', (e) => {
+            if (e.target.closest('.tab-close')) {
+                e.stopPropagation();
+                closeMapTab(id);
+            } else {
+                switchMap(id);
+            }
+        });
+        list.appendChild(pill);
+    });
+    if (window.lucide) lucide.createIcons();
+}
+
+function renderNodes() {
+    nodesLayer.innerHTML = '';
+    const map = getActiveMap();
+    if (!map) return;
+    const query = state.searchQuery.trim().toLowerCase();
+
+    map.nodes.forEach(node => {
+        const isSelected = node.id === state.selectedNodeId;
+        const isRoot = !node.parentId;
+        const statusMeta = STATUS_BADGES[node.status] || STATUS_BADGES['Idea'];
+        const hasNotes = node.notes && node.notes.trim().length > 0;
+        const hasCode = node.code && node.code.trim().length > 0;
+        const hasImage = node.image && node.image.trim().length > 0;
+        const gitCount = (node.gitLogs || []).length;
+        const matchesSearch = !query ||
+            (node.title||'').toLowerCase().includes(query) ||
+            (node.notes||'').toLowerCase().includes(query) ||
+            (node.code||'').toLowerCase().includes(query) ||
+            (node.status||'').toLowerCase().includes(query);
+
+        const el = document.createElement('div');
+        el.dataset.id = node.id;
+        el.style.transform = `translate(${node.x}px, ${node.y}px)`;
+        el.style.borderLeftColor = node.color || '#6366f1';
+        el.className = `mind-node absolute top-0 left-0 w-64 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 border-l-4 p-3.5 shadow-lg cursor-pointer select-none transition-opacity duration-200 overflow-hidden ${
+            isSelected ? 'node-selected ring-2 ring-indigo-500/60 z-10' : 'hover:border-slate-300 dark:hover:border-slate-700'
+        } ${!matchesSearch ? 'opacity-25' : 'opacity-100'} ${isRoot ? 'ring-1 ring-indigo-500/30' : ''}`;
+
+        el.innerHTML = `
+            <div class="flex items-center justify-between gap-2 mb-1.5 min-h-[20px] w-full">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${statusMeta.bg} min-w-0 shrink">
+                    <span class="shrink-0">${statusMeta.icon}</span>
+                    <span class="truncate">${escapeHtml(node.status||'Idea')}</span>
+                </span>
+                <div class="flex items-center gap-1.5 text-slate-400 shrink-0">
+                    ${hasNotes ? '<i data-lucide="file-text" class="w-3.5 h-3.5 text-sky-400" title="Notes"></i>' : ''}
+                    ${hasCode ? '<i data-lucide="code-2" class="w-3.5 h-3.5 text-emerald-400" title="Code"></i>' : ''}
+                    ${hasImage ? '<i data-lucide="image" class="w-3.5 h-3.5 text-amber-400" title="Image"></i>' : ''}
+                    ${gitCount > 0 ? `<span class="flex items-center gap-0.5 text-[10px] font-semibold text-indigo-400" title="${gitCount} commits"><i data-lucide="git-commit" class="w-3 h-3"></i>${gitCount}</span>` : ''}
+                </div>
+            </div>
+            <div class="font-bold text-sm text-slate-800 dark:text-slate-100 leading-snug line-clamp-2 break-words">${escapeHtml(node.title || 'Untitled Node')}</div>
+            ${hasImage ? `<div class="mt-2 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-950 h-24"><img src="${escapeHtml(node.image)}" alt="thumb" onerror="this.style.display='none'" class="w-full h-full object-cover" /></div>` : ''}
+            ${hasNotes && !hasImage ? `<p class="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">${escapeHtml((node.notes||'').replace(/[#*`>-]/g,'').trim())}</p>` : ''}
+            ${node.modifiedAt ? `<div class="mt-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-800 text-[9px] text-slate-400 dark:text-slate-500 font-mono truncate">${escapeHtml(node.modifiedAt)}</div>` : ''}
+        `;
+        el.addEventListener('pointerdown', (e) => handleNodePointerDown(e, node.id));
+        nodesLayer.appendChild(el);
+    });
+}
+
+function renderConnections() {
+    connectionsLayer.innerHTML = '';
+    const map = getActiveMap();
+    if (!map) return;
+    const nodeMap = new Map(map.nodes.map(n => [n.id, n]));
+    map.nodes.forEach(node => {
+        if (!node.parentId) return;
+        const parent = nodeMap.get(node.parentId);
+        if (!parent) return;
+        const nodeWidth = 256;
+        const pEl = nodesLayer.querySelector(`[data-id="${parent.id}"]`);
+        const cEl = nodesLayer.querySelector(`[data-id="${node.id}"]`);
+        const pH = pEl ? pEl.offsetHeight : 84;
+        const cH = cEl ? cEl.offsetHeight : 84;
+
+        let d;
+        if (map.layout === 'radial') {
+            const sx = parent.x + nodeWidth/2, sy = parent.y + pH/2;
+            const ex = node.x + nodeWidth/2, ey = node.y + cH/2;
+            const mx = (sx+ex)/2, my = (sy+ey)/2;
+            d = `M ${sx} ${sy} Q ${mx} ${my}, ${ex} ${ey}`;
+        } else {
+            const isRight = node.x >= parent.x;
+            const sx = isRight ? parent.x + nodeWidth : parent.x;
+            const sy = parent.y + pH/2;
+            const ex = isRight ? node.x : node.x + nodeWidth;
+            const ey = node.y + cH/2;
+            const dx = Math.abs(ex - sx) * 0.5;
+            const c1x = isRight ? sx + dx : sx - dx;
+            const c2x = isRight ? ex - dx : ex + dx;
+            d = `M ${sx} ${sy} C ${c1x} ${sy}, ${c2x} ${ey}, ${ex} ${ey}`;
+        }
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+        path.setAttribute('d', d);
+        path.setAttribute('fill','none');
+        path.setAttribute('stroke', node.color || '#6366f1');
+        path.setAttribute('stroke-width','2.5');
+        path.setAttribute('stroke-opacity','0.65');
+        path.setAttribute('class','connector-path');
+        connectionsLayer.appendChild(path);
+    });
+}
+
+function applyAutoLayout(mode, animate = true) {
+    const map = getActiveMap();
+    if (!map) return;
+    map.layout = mode;
+    updateLayoutButtonsUI(mode);
+
+    if (mode === 'freeform') { saveToLocalStorage(); return; }
+
+    if (animate) {
+        canvasWorld.classList.add('layout-animating');
+        setTimeout(() => canvasWorld.classList.remove('layout-animating'), 400);
+    }
+    const nodes = map.nodes;
+    const root = nodes.find(n => !n.parentId) || nodes[0];
+    if (!root) return;
+
+    const childrenMap = {};
+    nodes.forEach(n => childrenMap[n.id] = []);
+    nodes.forEach(n => { if (n.parentId && childrenMap[n.parentId]) childrenMap[n.parentId].push(n); });
+
+    if (mode === 'tree') {
+        const gapX = 330, gapY = 135;
+        let cursorY = 100;
+        (function layoutSub(node, depth) {
+            const kids = childrenMap[node.id] || [];
+            node.x = 100 + depth * gapX;
+            if (kids.length === 0) { node.y = cursorY; cursorY += gapY; }
+            else {
+                kids.forEach(k => layoutSub(k, depth + 1));
+                node.y = (kids[0].y + kids[kids.length-1].y) / 2;
+            }
+        })(root, 0);
+    } else if (mode === 'radial') {
+        const cx = 600, cy = 450;
+        const nodeWidth = 256;
+        const nodeHeight = 84; // Approximate
+
+        root.x = cx - nodeWidth / 2;
+        root.y = cy - nodeHeight / 2;
+
+        const countLeaves = (n) => {
+            const kids = childrenMap[n.id] || [];
+            return kids.length === 0 ? 1 : kids.reduce((s,k) => s + countLeaves(k), 0);
+        };
+        (function layoutRadial(node, depth, a0, a1) {
+            const kids = childrenMap[node.id] || [];
+            if (kids.length === 0) return;
+            const radius = depth * 320;
+            const total = kids.reduce((s,k) => s + countLeaves(k), 0);
+            let cursor = a0;
+            kids.forEach(kid => {
+                const sweep = (a1 - a0) * (countLeaves(kid) / total);
+                const mid = cursor + sweep / 2;
+                kid.x = cx + Math.cos(mid) * radius - nodeWidth / 2;
+                kid.y = cy + Math.sin(mid) * radius - nodeHeight / 2;
+                layoutRadial(kid, depth + 1, cursor, cursor + sweep);
+                cursor += sweep;
+            });
+        })(root, 1, 0, Math.PI * 2);
+    }
+    renderAll();
+    saveToLocalStorage();
+}
+
+function updateLayoutButtonsUI(activeMode) {
+    document.querySelectorAll('.layout-btn').forEach(btn => {
+        const isMatch = btn.dataset.layout === activeMode;
+        if (isMatch) {
+            btn.className = 'layout-btn px-2.5 py-1 rounded-lg bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400 flex items-center gap-1 transition font-semibold';
+        } else {
+            btn.className = 'layout-btn px-2.5 py-1 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 transition';
+        }
+    });
+}
+
+function updateWorldTransform() {
+    const { x, y, scale } = state.viewport;
+    canvasWorld.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+    zoomLevelLabel.textContent = `${Math.round(scale * 100)}%`;
+}
+
+function centerMapOnCanvas(animate = true) {
+    const map = getActiveMap();
+    if (!map || !map.nodes.length) return;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    map.nodes.forEach(n => {
+        minX = Math.min(minX, n.x); minY = Math.min(minY, n.y);
+        maxX = Math.max(maxX, n.x + 260); maxY = Math.max(maxY, n.y + 100);
+    });
+    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+    const rect = canvasViewport.getBoundingClientRect();
+    state.viewport.scale = 1;
+    state.viewport.x = rect.width / 2 - cx;
+    state.viewport.y = rect.height / 2 - cy;
+    if (animate) {
+        canvasWorld.style.transition = 'transform .3s ease-out';
+        setTimeout(() => canvasWorld.style.transition = '', 320);
+    }
+    updateWorldTransform();
+    saveToLocalStorage();
+}
+
+function addChildNode(parentId) {
+    const map = getActiveMap();
+    if (!map) return;
+    const parent = map.nodes.find(n => n.id === parentId) || map.nodes[0];
+    if (!parent) return;
+    const now = nowFormatted();
+    const newId = 'node_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+    const defaultColor = state.statusColors['Idea'] || '#eab308';
+    const newNode = {
+        id: newId, parentId: parent.id, title: 'New Idea • புதிய குறிப்பு',
+        status: 'Idea', color: parent.parentId ? (parent.color || defaultColor) : defaultColor,
+        x: parent.x + 320, y: parent.y + (Math.random() * 120 - 60),
+        createdAt: now, modifiedAt: now,
+        notes: '', codeLang: 'JavaScript', code: '', image: '',
+        gitLogs: [{ type: 'feat', msg: 'Node created', time: now }]
+    };
+    map.nodes.push(newNode);
+    map.modifiedAt = now;
+    state.selectedNodeId = newId;
+
+    if (map.layout !== 'freeform') applyAutoLayout(map.layout, true);
+    else { renderAll(); saveToLocalStorage(); }
+    openInspector(newId);
+    showToast('Child node added', 'success');
+}
+
+function addSiblingNode(nodeId) {
+    const map = getActiveMap();
+    if (!map) return;
+    const cur = map.nodes.find(n => n.id === nodeId);
+    if (!cur) return;
+    if (!cur.parentId) { addChildNode(cur.id); return; }
+    addChildNode(cur.parentId);
+}
+
+function deleteNode(nodeId) {
+    const map = getActiveMap();
+    const target = map.nodes.find(n => n.id === nodeId);
+    if (!target) return;
+    if (!target.parentId) { showToast('Cannot delete the root node!', 'error'); return; }
+
+    const toDelete = new Set([nodeId]);
+    let added = true;
+    while (added) {
+        added = false;
+        map.nodes.forEach(n => {
+            if (n.parentId && toDelete.has(n.parentId) && !toDelete.has(n.id)) {
+                toDelete.add(n.id); added = true;
+            }
+        });
+    }
+    const deletedNodes = map.nodes.filter(n => toDelete.has(n.id));
+    state.trash.unshift({
+        trashId: 'tr_' + Date.now() + '_' + Math.random().toString(36).slice(2),
+        itemType: 'NODE', mapId: map.id, mapTitle: map.title,
+        deletedAt: nowFormatted(),
+        data: JSON.parse(JSON.stringify(target)),
+        subtree: JSON.parse(JSON.stringify(deletedNodes))
+    });
+    map.nodes = map.nodes.filter(n => !toDelete.has(n.id));
+    map.modifiedAt = nowFormatted();
+    state.selectedNodeId = target.parentId;
+    closeInspector();
+
+    if (map.layout !== 'freeform') applyAutoLayout(map.layout, true);
+    else { renderAll(); saveToLocalStorage(); }
+    updateTrashBadge();
+    showToast('Node moved to Restore Bin', 'info');
+}
+
+function updateSelectedNode(field, value) {
+    const node = getSelectedNode();
+    if (!node) return;
+    node[field] = value;
+    if (field !== 'x' && field !== 'y') {
+        node.modifiedAt = nowFormatted();
+        touchActiveMap();
+    }
+    if (field === 'title') renderNodes();
+    if (field === 'notes') renderNodes();
+    if (field === 'image') renderNodes();
+    if (field === 'status') {
+        if (state.statusColors[value]) {
+            node.color = state.statusColors[value];
+            $('inspectorColorDot').style.backgroundColor = node.color;
+            document.querySelectorAll('#colorPalettePicker button').forEach(b => {
+                b.classList.toggle('ring-2', b.dataset.hex === node.color);
+                b.classList.toggle('ring-white', b.dataset.hex === node.color);
+            });
+            renderNodes();
+            renderConnections();
+        }
+    }
+    saveToLocalStorage();
+}
+
+function handleNodePointerDown(e, nodeId) {
+    e.stopPropagation();
+    state.selectedNodeId = nodeId;
+    state.draggedNodeId = nodeId;
+    state.hasDraggedMoved = false;
+    const map = getActiveMap();
+    const node = map.nodes.find(n => n.id === nodeId);
+    if (!node) return;
+    state.dragOffset = {
+        x: (e.clientX - state.viewport.x) / state.viewport.scale - node.x,
+        y: (e.clientY - state.viewport.y) / state.viewport.scale - node.y
+    };
+    renderAll();
+}
+
+function createNewMap(skipPrompt = false) {
+    let title = null;
+    if (!skipPrompt) {
+        title = prompt('Enter New Map Name / புதிய வரைபடத்தின் பெயர்:', `Project Flow ${state.maps.length + 1}`);
+        if (!title || !title.trim()) return;
+    } else {
+        title = `Project Flow ${state.maps.length + 1}`;
+    }
+    const now = nowFormatted();
+    const defaultColor = state.statusColors['Idea'] || '#eab308';
+    const mapId = 'map_' + Date.now();
+    const rootId = 'node_' + Date.now() + '_root';
+    const newMap = {
+        id: mapId, title: title.trim(), layout: 'tree',
+        createdAt: now, modifiedAt: now,
+        nodes: [{
+            id: rootId, parentId: null, title: title.trim(),
+            status: 'Idea', color: defaultColor,
+            x: 220, y: 180,
+            createdAt: now, modifiedAt: now,
+            notes: '', codeLang: 'JavaScript', code: '', image: '',
+            gitLogs: [{ type: 'feat', msg: 'Initialized map root', time: now }]
+        }]
+    };
+    state.maps.push(newMap);
+    if (!state.openTabIds.includes(mapId)) state.openTabIds.push(mapId);
+    state.activeMapId = mapId;
+    state.selectedNodeId = rootId;
+    closeInspector();
+    updateLayoutButtonsUI('tree');
+    saveToLocalStorage();
+    renderAll();
+    centerMapOnCanvas(true);
+    showToast('New map created', 'success');
+}
+
+function switchMap(mapId) {
+    if (!state.maps.some(m => m.id === mapId)) return;
+    if (!state.openTabIds.includes(mapId)) state.openTabIds.push(mapId);
+    state.activeMapId = mapId;
+    const map = getActiveMap();
+    if (!state.selectedNodeId || !map.nodes.some(n => n.id === state.selectedNodeId)) {
+        state.selectedNodeId = map.nodes[0]?.id || null;
+    }
+    closeInspector();
+    updateLayoutButtonsUI(map.layout || 'tree');
+    renderAll();
+    saveToLocalStorage();
+    if (map.layout !== 'freeform') applyAutoLayout(map.layout, false);
+    centerMapOnCanvas(true);
+}
+
+function closeMapTab(mapId) {
+    if (state.openTabIds.length <= 1) { showToast('At least 1 tab must stay open.', 'error'); return; }
+    state.openTabIds = state.openTabIds.filter(id => id !== mapId);
+    if (state.activeMapId === mapId) {
+        state.activeMapId = state.openTabIds[0];
+        state.selectedNodeId = null;
+        closeInspector();
+        const map = getActiveMap();
+        updateLayoutButtonsUI(map.layout || 'tree');
+    }
+    renderAll();
+    saveToLocalStorage();
+    showToast('Tab closed (still saved)', 'info');
+}
+
+function deleteCurrentMap() {
+    if (state.maps.length <= 1) { showToast('At least one map must remain.', 'error'); return; }
+    const map = getActiveMap();
+    if (!confirm(`Move "${map.title}" to Restore Bin?`)) return;
+
+    state.trash.unshift({
+        trashId: 'tr_' + Date.now() + '_' + Math.random().toString(36).slice(2),
+        itemType: 'MAP', deletedAt: nowFormatted(),
+        data: JSON.parse(JSON.stringify(map))
+    });
+    state.maps = state.maps.filter(m => m.id !== map.id);
+    state.openTabIds = state.openTabIds.filter(id => id !== map.id);
+    if (state.openTabIds.length === 0) state.openTabIds.push(state.maps[0].id);
+    state.activeMapId = state.openTabIds[0];
+    state.selectedNodeId = null;
+    closeInspector();
+    updateLayoutButtonsUI(getActiveMap().layout || 'tree');
+    renderAll();
+    saveToLocalStorage();
+    updateTrashBadge();
+    showToast('Map moved to Restore Bin', 'info');
+}
+
+function renameMap(mapId) {
+    const m = state.maps.find(x => x.id === mapId);
+    if (!m) return;
+    const name = prompt('Rename Map:', m.title);
+    if (name && name.trim()) {
+        m.title = name.trim();
+        m.modifiedAt = nowFormatted();
+        if (m.id === state.activeMapId) mapTitleInput.value = m.title;
+        saveToLocalStorage();
+        renderAll();
+        openMapManagerModal();
+    }
+}
+
+function restoreTrashItem(trashId) {
+    const idx = state.trash.findIndex(t => t.trashId === trashId);
+    if (idx === -1) return;
+    const item = state.trash[idx];
+    const now = nowFormatted();
+
+    if (item.itemType === 'MAP') {
+        item.data.modifiedAt = now;
+        state.maps.push(item.data);
+        if (!state.openTabIds.includes(item.data.id)) state.openTabIds.push(item.data.id);
+        state.activeMapId = item.data.id;
+        updateLayoutButtonsUI(item.data.layout || 'tree');
+    } else if (item.itemType === 'NODE') {
+        const targetMap = state.maps.find(m => m.id === item.mapId) || getActiveMap();
+        const subtree = item.subtree || [item.data];
+        const rootNode = subtree.find(n => n.id === item.data.id) || item.data;
+        if (rootNode.parentId && !targetMap.nodes.some(n => n.id === rootNode.parentId)) {
+            rootNode.parentId = targetMap.nodes[0]?.id || null;
+        }
+        subtree.forEach(n => {
+            n.modifiedAt = now;
+            if (!targetMap.nodes.some(e => e.id === n.id)) targetMap.nodes.push(n);
+        });
+        targetMap.modifiedAt = now;
+        if (!state.openTabIds.includes(targetMap.id)) state.openTabIds.push(targetMap.id);
+        state.activeMapId = targetMap.id;
+        state.selectedNodeId = rootNode.id;
+    }
+
+    state.trash.splice(idx, 1);
+    saveToLocalStorage();
+    renderAll();
+    openMapManagerModal();
+    if (getActiveMap().layout !== 'freeform') applyAutoLayout(getActiveMap().layout, false);
+    centerMapOnCanvas(true);
+    updateTrashBadge();
+    showToast('Restored!', 'success');
+}
+
+function purgeTrashItem(trashId) {
+    state.trash = state.trash.filter(t => t.trashId !== trashId);
+    saveToLocalStorage();
+    openMapManagerModal();
+    updateTrashBadge();
+}
+
+function clearAllTrash() {
+    if (!state.trash.length) return;
+    if (!confirm(`Permanently delete all ${state.trash.length} items? This cannot be undone.`)) return;
+    state.trash = [];
+    saveToLocalStorage();
+    openMapManagerModal();
+    updateTrashBadge();
+    showToast('Bin emptied', 'info');
+}
+
+function openDefaultColorsModal() {
+    const form = $('defaultColorsForm');
+    form.innerHTML = '';
+    Object.keys(DEFAULT_STATUS_COLORS).forEach(status => {
+        const cur = state.statusColors[status] || DEFAULT_STATUS_COLORS[status];
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between p-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700';
+        row.innerHTML = `
+            <strong class="text-sm">${status}</strong>
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-slate-400 font-mono">${cur}</span>
+                <input type="color" value="${cur}" data-status="${status}" class="w-10 h-7 rounded cursor-pointer" />
+            </div>`;
+        row.querySelector('input').addEventListener('input', (e) => {
+            state.statusColors[status] = e.target.value;
+            saveToLocalStorage();
+        });
+        form.appendChild(row);
+    });
+    showModal('defaultColorsModal');
+}
+
+function resetDefaultColors() {
+    state.statusColors = { ...DEFAULT_STATUS_COLORS };
+    saveToLocalStorage();
+    openDefaultColorsModal();
+}
+
+function populateLanguages() {
+    const sel = $('nodeCodeLangSelect');
+    sel.innerHTML = '';
+    state.languages.forEach(lang => {
+        const o = document.createElement('option');
+        o.value = lang; o.textContent = lang;
+        sel.appendChild(o);
+    });
+}
+
+function addManualLanguage() {
+    const custom = prompt('Add Program / Language Name:', 'Rust');
+    if (!custom || !custom.trim()) return;
+    const clean = custom.trim();
+    if (!state.languages.includes(clean)) state.languages.push(clean);
+    populateLanguages();
+    $('nodeCodeLangSelect').value = clean;
+    updateSelectedNode('codeLang', clean);
+    saveToLocalStorage();
+    showToast('Language added', 'success');
+}
+
+function getSelectedNode() {
+    const map = getActiveMap();
+    return map ? map.nodes.find(n => n.id === state.selectedNodeId) : null;
+}
+
+function openInspector(nodeId) {
+    state.selectedNodeId = nodeId;
+    const node = getSelectedNode();
+    if (!node) return;
+
+    $('nodeTitleInput').value = node.title || '';
+    $('nodeStatusSelect').value = node.status || 'Idea';
+    $('inspectorColorDot').style.backgroundColor = node.color || '#6366f1';
+    $('nodeNotesInput').value = node.notes || '';
+    $('nodeCodeInput').value = node.code || '';
+    $('nodeImageUrlInput').value = node.image || '';
+    $('nodeMetaInfo').textContent = `ID: ${node.id}`;
+    $('nodeCreatedAt').textContent = node.createdAt || '--';
+    $('nodeModifiedAt').textContent = node.modifiedAt || '--';
+
+    populateLanguages();
+    if (node.codeLang && !state.languages.includes(node.codeLang)) state.languages.push(node.codeLang);
+    populateLanguages();
+    $('nodeCodeLangSelect').value = node.codeLang || 'JavaScript';
+
+    document.querySelectorAll('#colorPalettePicker button').forEach(b => {
+        b.classList.toggle('ring-2', b.dataset.hex === node.color);
+        b.classList.toggle('ring-white', b.dataset.hex === node.color);
+        b.classList.toggle('ring-offset-1', b.dataset.hex === node.color);
+    });
+
+    updateCodePreview();
+    updateMarkdownPreview();
+    updateImagePreview(node.image);
+    renderGitHistory(node);
+
+    inspectorPanel.classList.remove('translate-x-[110%]');
+    renderNodes();
+}
+
+function closeInspector() {
+    inspectorPanel.classList.add('translate-x-[110%]');
+}
+
+function updateCodePreview() {
+    const code = $('nodeCodeInput').value || '// No code snippet yet';
+    const lang = $('nodeCodeLangSelect').value || 'JavaScript';
+    const el = $('nodeCodePreview');
+    $('codeLangBadge').textContent = lang;
+    const langMap = { 'C++':'cpp', 'C':'c', 'Bash / Termux':'bash', 'Arduino / ESP':'cpp', 'JSON':'json', 'Markdown':'markdown' };
+    const hl = langMap[lang] || lang.toLowerCase().replace(/[^a-z0-9]/g, '');
+    el.className = `language-${hl}`;
+    el.textContent = code;
+    if (window.hljs) { delete el.dataset.highlighted; try { hljs.highlightElement(el); } catch(e){} }
+}
+
+function updateMarkdownPreview() {
+    const raw = $('nodeNotesInput').value || '*No notes added yet.*';
+    const el = $('nodeNotesPreview');
+    if (window.marked) el.innerHTML = marked.parse(raw); else el.textContent = raw;
+}
+
+function updateImagePreview(src) {
+    const box = $('nodeImagePreviewContainer');
+    const img = $('nodeImagePreview');
+    if (src && src.trim()) { img.src = src.trim(); box.classList.remove('hidden'); }
+    else { img.src = ''; box.classList.add('hidden'); }
+}
+
+function renderGitHistory(node) {
+    const list = $('gitHistoryList');
+    list.innerHTML = '';
+    const logs = node.gitLogs || [];
+    if (!logs.length) { list.innerHTML = '<div class="text-xs text-slate-400 italic p-2">No commits yet.</div>'; return; }
+    logs.forEach(log => {
+        const row = document.createElement('div');
+        row.className = 'p-2 rounded-lg bg-slate-100 dark:bg-slate-800/80 border-l-2 border-indigo-500 text-xs';
+        const typeColor = { feat:'text-emerald-400', code:'text-blue-400', fix:'text-rose-400', note:'text-amber-400' }[log.type] || 'text-indigo-400';
+        row.innerHTML = `
+            <div class="flex justify-between items-center text-[10px] text-slate-400 mb-0.5">
+                <strong class="${typeColor} uppercase tracking-wider">[${escapeHtml(log.type)}]</strong>
+                <span class="font-mono">${escapeHtml(log.time)}</span>
+            </div>
+            <div class="text-slate-700 dark:text-slate-200">${escapeHtml(log.msg)}</div>`;
+        list.appendChild(row);
+    });
+}
+
+function addGitCommit() {
+    const node = getSelectedNode();
+    if (!node) return;
+    const msg = $('gitCommitMsg').value.trim();
+    if (!msg) { showToast('Enter a commit message', 'error'); return; }
+    const type = $('gitCommitType').value;
+    const now = nowFormatted();
+    if (!node.gitLogs) node.gitLogs = [];
+    node.gitLogs.unshift({ type, msg, time: now });
+    node.modifiedAt = now;
+    touchActiveMap();
+    $('gitCommitMsg').value = '';
+    $('nodeModifiedAt').textContent = now;
+    saveToLocalStorage();
+    renderGitHistory(node);
+    renderNodes();
+    showToast('Commit added', 'success');
+}
+
+function renderFixedColorSwatches() {
+    const container = $('colorPalettePicker');
+    container.innerHTML = '';
+    FIXED_PALETTE.forEach(c => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.dataset.hex = c.hex;
+        btn.className = 'shrink-0 w-5 h-5 rounded-full border-2 border-white dark:border-slate-900 shadow-sm hover:scale-110 transition';
+        btn.style.backgroundColor = c.hex;
+        btn.title = c.name;
+        btn.onclick = () => {
+            updateSelectedNode('color', c.hex);
+            $('inspectorColorDot').style.backgroundColor = c.hex;
+            document.querySelectorAll('#colorPalettePicker button').forEach(b => {
+                b.classList.toggle('ring-2', b.dataset.hex === c.hex);
+                b.classList.toggle('ring-white', b.dataset.hex === c.hex);
+                b.classList.toggle('ring-offset-1', b.dataset.hex === c.hex);
+            });
+        };
+        container.appendChild(btn);
+    });
+    const custom = document.createElement('input');
+    custom.type = 'color';
+    custom.title = 'Custom Color';
+    custom.className = 'shrink-0 w-7 h-5 rounded cursor-pointer border-2 border-white dark:border-slate-900 shadow-sm p-0';
+    custom.oninput = (e) => {
+        updateSelectedNode('color', e.target.value);
+        $('inspectorColorDot').style.backgroundColor = e.target.value;
+    };
+    container.appendChild(custom);
+}
+
+function compressAndAttachImage(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX = 800;
+            let w = img.width, h = img.height;
+            if (w > MAX || h > MAX) {
+                if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+                else { w = Math.round(w * MAX / h); h = MAX; }
+            }
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
+            const node = getSelectedNode();
+            if (node) {
+                node.image = dataUrl;
+                node.modifiedAt = nowFormatted();
+                touchActiveMap();
+                $('nodeImageUrlInput').value = dataUrl;
+                updateImagePreview(dataUrl);
+                renderNodes();
+                saveToLocalStorage();
+                showToast('Image attached & compressed', 'success');
+            }
+        };
+        img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function showModal(id) {
+    const m = $(id);
+    if (!m) return;
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+}
+function hideModal(id) {
+    const m = $(id);
+    if (!m) return;
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+}
+
+function openMapManagerModal() {
+    const list = $('mapManagerList');
+    list.innerHTML = '';
+    state.maps.forEach(m => {
+        const isOpen = state.openTabIds.includes(m.id);
+        const isActive = state.activeMapId === m.id;
+        const row = document.createElement('div');
+        row.className = `p-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 border ${isActive ? 'border-indigo-500 ring-1 ring-indigo-500/40' : 'border-slate-200 dark:border-slate-700'}`;
+        row.innerHTML = `
+            <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <strong class="text-sm truncate">${escapeHtml(m.title)}</strong>
+                        <span class="text-[9px] px-1.5 py-0.5 rounded font-semibold ${isOpen ? 'bg-emerald-500/20 text-emerald-500' : 'bg-slate-500/20 text-slate-400'}">${isOpen ? 'OPEN' : 'CLOSED'}</span>
+                        ${isActive ? '<span class="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400 font-semibold">ACTIVE</span>' : ''}
+                    </div>
+                    <div class="text-[10px] text-slate-400 mt-1 font-mono">${m.nodes.length} nodes • Created ${m.createdAt} • Modified ${m.modifiedAt}</div>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                    <button data-act="open" data-id="${m.id}" class="px-2 py-1 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-semibold">Open</button>
+                    <button data-act="rename" data-id="${m.id}" class="p-1 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700" title="Rename"><i data-lucide="pencil" class="w-3 h-3"></i></button>
+                    <button data-act="delete" data-id="${m.id}" class="p-1 rounded-md text-rose-500 hover:bg-rose-500/10" title="Move to bin"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+                </div>
+            </div>`;
+        row.querySelectorAll('button[data-act]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = btn.dataset.id;
+                const act = btn.dataset.act;
+                if (act === 'open') { switchMap(id); hideModal('mapManagerModal'); }
+                else if (act === 'rename') renameMap(id);
+                else if (act === 'delete') {
+                    if (state.activeMapId !== id) switchMap(id);
+                    deleteCurrentMap();
+                    openMapManagerModal();
+                }
+            });
+        });
+        list.appendChild(row);
+    });
+
+    const rlist = $('restoreList');
+    rlist.innerHTML = '';
+    $('trashCount').textContent = state.trash.length;
+    if (!state.trash.length) {
+        rlist.innerHTML = '<div class="text-xs text-slate-400 italic py-3 text-center">Restore bin is empty.</div>';
+    } else {
+        state.trash.forEach(item => {
+            const row = document.createElement('div');
+            row.className = 'p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2';
+            const label = item.itemType === 'MAP'
+                ? `🗂️ ${item.data.title}`
+                : `🔹 ${item.data.title} (${item.mapTitle || 'Map'})`;
+            const sub = item.itemType === 'NODE' && item.subtree
+                ? `+${item.subtree.length - 1} descendant(s)` : '';
+            row.innerHTML = `
+                <div class="min-w-0 flex-1">
+                    <div class="text-xs font-semibold truncate">${escapeHtml(label)}</div>
+                    <div class="text-[10px] text-slate-400 font-mono">${escapeHtml(item.deletedAt)} ${sub ? '• ' + sub : ''}</div>
+                </div>
+                <div class="flex gap-1 shrink-0">
+                    <button data-r="restore" data-id="${item.trashId}" class="px-2 py-1 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-semibold">♻️</button>
+                    <button data-r="purge" data-id="${item.trashId}" class="px-2 py-1 rounded-md text-rose-500 hover:bg-rose-500/10 text-[10px] font-semibold">✕</button>
+                </div>`;
+            row.querySelectorAll('button[data-r]').forEach(b => {
+                b.addEventListener('click', () => {
+                    if (b.dataset.r === 'restore') restoreTrashItem(b.dataset.id);
+                    else purgeTrashItem(b.dataset.id);
+                });
+            });
+            rlist.appendChild(row);
+        });
+    }
+    if (window.lucide) lucide.createIcons();
+    showModal('mapManagerModal');
+}
+
+function handleSearch(val) {
+    state.searchQuery = val;
+    $('clearSearchBtn').classList.toggle('hidden', !val);
+    renderNodes();
+}
+
+function exportMindMapJson() {
+    const payload = {
+        version: 'v4-merged',
+        exportedAt: new Date().toISOString(),
+        maps: state.maps, activeMapId: state.activeMapId, openTabIds: state.openTabIds,
+        trash: state.trash, statusColors: state.statusColors, languages: state.languages
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `thinking-flow-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showToast('Exported full backup', 'success');
+}
+
+function saveFileDirectly() {
+    touchActiveMap();
+    saveToLocalStorage();
+    exportMindMapJson();
+}
+
+function importMindMapJson(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const data = JSON.parse(e.target.result);
+            let migrated;
+            if (data.maps && Array.isArray(data.maps)) migrated = migrateV3(data);
+            else if (data.nodes && Array.isArray(data.nodes)) migrated = migrateV1(data);
+            else throw new Error('Unknown format');
+
+            if (!migrated.maps || !migrated.maps.length) throw new Error('No maps found');
+
+            state.maps = migrated.maps;
+            state.activeMapId = migrated.activeMapId || migrated.maps[0].id;
+            state.openTabIds = migrated.openTabIds && migrated.openTabIds.length ? migrated.openTabIds : migrated.maps.map(m => m.id);
+            state.trash = migrated.trash || [];
+            state.statusColors = migrated.statusColors || { ...DEFAULT_STATUS_COLORS };
+            state.languages = migrated.languages || [...DEFAULT_LANGUAGES];
+            state.selectedNodeId = getActiveMap().nodes[0]?.id || null;
+
+            populateLanguages();
+            updateLayoutButtonsUI(getActiveMap().layout || 'tree');
+            renderAll();
+            centerMapOnCanvas(true);
+            saveToLocalStorage();
+            updateTrashBadge();
+            hideModal('syncModal');
+            showToast('Import successful', 'success');
+        } catch (err) {
+            console.error(err);
+            showToast('Invalid JSON file: ' + err.message, 'error');
+        }
+    };
+    reader.readAsText(file);
+}
+
+function loadSavedCloudConfigs() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}');
+        if (saved.firebaseConfig) $('firebaseConfigInput').value = saved.firebaseConfig;
+        if (saved.gdriveClientId) $('gdriveClientIdInput').value = saved.gdriveClientId;
+    } catch (e) {}
+}
+function saveCloudConfigField(key, val) {
+    try {
+        const saved = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}');
+        saved[key] = val;
+        localStorage.setItem(CONFIG_KEY, JSON.stringify(saved));
+    } catch (e) {}
+}
+
+async function connectFirebaseAndAuth() {
+    const raw = $('firebaseConfigInput').value.trim();
+    const statusEl = $('firebaseStatusText');
+    if (!raw) { showToast('Paste your Firebase Config first', 'error'); return; }
+    try {
+        const cfg = JSON.parse(raw);
+        saveCloudConfigField('firebaseConfig', raw);
+        if (!firebase.apps.length) state.firebaseApp = firebase.initializeApp(cfg);
+        else state.firebaseApp = firebase.app();
+        const provider = new firebase.auth.GoogleAuthProvider();
+        const res = await firebase.auth().signInWithPopup(provider);
+        state.firebaseUser = res.user;
+        statusEl.textContent = `Connected as ${res.user.email} ✅`;
+        statusEl.className = 'text-xs text-emerald-500 font-semibold';
+        $('pushFirebaseBtn').disabled = false;
+        $('pullFirebaseBtn').disabled = false;
+        showToast('Signed in to Firebase', 'success');
+    } catch (err) {
+        console.error(err);
+        statusEl.textContent = `Error: ${err.message}`;
+        statusEl.className = 'text-xs text-rose-500';
+        showToast('Firebase connection failed', 'error');
+    }
+}
+
+async function pushToFirestore() {
+    if (!state.firebaseUser) return;
+    const statusEl = $('firebaseStatusText');
+    try {
+        statusEl.textContent = 'Uploading...';
+        const db = firebase.firestore();
+        await db.collection('mindmaps').doc(state.firebaseUser.uid).set({
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            state: {
+                maps: state.maps, activeMapId: state.activeMapId, openTabIds: state.openTabIds,
+                trash: state.trash, statusColors: state.statusColors, languages: state.languages
+            }
+        });
+        statusEl.textContent = `Synced at ${new Date().toLocaleTimeString()} ✅`;
+        showToast('Saved to Firestore', 'success');
+    } catch (err) {
+        statusEl.textContent = `Error: ${err.message}`;
+        showToast('Firestore write failed', 'error');
+    }
+}
+
+async function pullFromFirestore() {
+    if (!state.firebaseUser) return;
+    const statusEl = $('firebaseStatusText');
+    try {
+        statusEl.textContent = 'Fetching...';
+        const db = firebase.firestore();
+        const doc = await db.collection('mindmaps').doc(state.firebaseUser.uid).get();
+        if (!doc.exists || !doc.data().state) { showToast('No backup found', 'info'); return; }
+        const d = doc.data().state;
+        state.maps = d.maps || state.maps;
+        state.activeMapId = d.activeMapId || state.activeMapId;
+        state.openTabIds = d.openTabIds || state.openTabIds;
+        state.trash = d.trash || [];
+        state.statusColors = d.statusColors || state.statusColors;
+        state.languages = d.languages || state.languages;
+        state.selectedNodeId = getActiveMap().nodes[0]?.id || null;
+        populateLanguages();
+        updateLayoutButtonsUI(getActiveMap().layout || 'tree');
+        renderAll();
+        centerMapOnCanvas(true);
+        saveToLocalStorage();
+        updateTrashBadge();
+        statusEl.textContent = 'Loaded from Firestore ✅';
+        showToast('Pulled from Firebase', 'success');
+    } catch (err) {
+        statusEl.textContent = `Error: ${err.message}`;
+        showToast('Firestore pull failed', 'error');
+    }
+}
+
+function authorizeGoogleDrive() {
+    const cid = $('gdriveClientIdInput').value.trim();
+    const statusEl = $('gdriveStatusText');
+    if (!cid) { showToast('Enter OAuth Client ID', 'error'); return; }
+    saveCloudConfigField('gdriveClientId', cid);
+    if (!window.google || !google.accounts || !google.accounts.oauth2) {
+        showToast('Google Identity still loading, try again', 'error'); return;
+    }
+    const tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: cid,
+        scope: 'https://www.googleapis.com/auth/drive.file',
+        callback: (resp) => {
+            if (resp && resp.access_token) {
+                state.gdriveAccessToken = resp.access_token;
+                statusEl.textContent = 'Drive authorized ✅';
+                statusEl.className = 'text-xs text-emerald-500 font-semibold';
+                $('saveToGdriveBtn').disabled = false;
+                $('loadFromGdriveBtn').disabled = false;
+                showToast('Google Drive connected', 'success');
+            }
+        }
+    });
+    tokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
+async function getOrCreateDriveFolder(name = 'MindMap_Flows') {
+    const q = encodeURIComponent(`name='${name}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+    const r = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`, {
+        headers: { Authorization: `Bearer ${state.gdriveAccessToken}` }
+    });
+    const d = await r.json();
+    if (d.files && d.files.length) return d.files[0].id;
+    const c = await fetch('https://www.googleapis.com/drive/v3/files', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${state.gdriveAccessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, mimeType: 'application/vnd.google-apps.folder' })
+    });
+    const folder = await c.json();
+    return folder.id;
+}
+
+async function saveMindMapToGoogleDrive() {
+    if (!state.gdriveAccessToken) return;
+    const statusEl = $('gdriveStatusText');
+    try {
+        statusEl.textContent = 'Saving to Drive...';
+        const folderId = await getOrCreateDriveFolder();
+        const fileName = `thinking-flow-${new Date().toISOString().slice(0,10)}.json`;
+        const payload = {
+            maps: state.maps, activeMapId: state.activeMapId, openTabIds: state.openTabIds,
+            trash: state.trash, statusColors: state.statusColors, languages: state.languages
+        };
+        const form = new FormData();
+        form.append('metadata', new Blob([JSON.stringify({ name: fileName, mimeType: 'application/json', parents: [folderId] })], { type: 'application/json' }));
+        form.append('file', new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
+        const r = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+            method: 'POST', headers: { Authorization: `Bearer ${state.gdriveAccessToken}` }, body: form
+        });
+        if (!r.ok) throw new Error('Upload failed');
+        statusEl.textContent = `Saved "${fileName}" ✅`;
+        showToast('Saved to Drive', 'success');
+    } catch (err) {
+        statusEl.textContent = `Error: ${err.message}`;
+        showToast('Drive save failed', 'error');
+    }
+}
+
+async function loadLatestFromGoogleDrive() {
+    if (!state.gdriveAccessToken) return;
+    const statusEl = $('gdriveStatusText');
+    try {
+        statusEl.textContent = 'Loading from Drive...';
+        const folderId = await getOrCreateDriveFolder();
+        const q = encodeURIComponent(`'${folderId}' in parents and mimeType='application/json' and trashed=false`);
+        const list = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&orderBy=modifiedTime desc&pageSize=1&fields=files(id,name)`, {
+            headers: { Authorization: `Bearer ${state.gdriveAccessToken}` }
+        });
+        const ld = await list.json();
+        if (!ld.files || !ld.files.length) { showToast('No backups in Drive', 'info'); return; }
+        const file = ld.files[0];
+        const fr = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`, {
+            headers: { Authorization: `Bearer ${state.gdriveAccessToken}` }
+        });
+        const data = await fr.json();
+        state.maps = data.maps || state.maps;
+        state.activeMapId = data.activeMapId || state.activeMapId;
+        state.openTabIds = data.openTabIds || state.openTabIds;
+        state.trash = data.trash || [];
+        state.statusColors = data.statusColors || state.statusColors;
+        state.languages = data.languages || state.languages;
+        state.selectedNodeId = getActiveMap().nodes[0]?.id || null;
+        populateLanguages();
+        updateLayoutButtonsUI(getActiveMap().layout || 'tree');
+        renderAll();
+        centerMapOnCanvas(true);
+        saveToLocalStorage();
+        updateTrashBadge();
+        statusEl.textContent = `Loaded "${file.name}" ✅`;
+        showToast('Loaded from Drive', 'success');
+    } catch (err) {
+        statusEl.textContent = `Error: ${err.message}`;
+        showToast('Drive load failed', 'error');
+    }
+}
+
+function toggleTheme() {
+    const html = document.documentElement;
+    const isDark = html.classList.toggle('dark');
+    canvasViewport.classList.toggle('canvas-grid-dark', isDark);
+    canvasViewport.classList.toggle('canvas-grid-light', !isDark);
+    state.isDark = isDark;
+    saveToLocalStorage();
+}
+
+function bindEvents() {
+    mapTitleInput.addEventListener('input', (e) => {
+        const m = getActiveMap();
+        if (m) { m.title = e.target.value; m.modifiedAt = nowFormatted(); renderMapTabs(); saveToLocalStorage(); }
+    });
+
+    canvasViewport.addEventListener('pointerdown', (e) => {
+        if (e.target.closest('.mind-node')) return;
+        state.isPanning = true;
+        state.panStart = { x: e.clientX - state.viewport.x, y: e.clientY - state.viewport.y };
+    });
+
+    window.addEventListener('pointermove', (e) => {
+        if (state.draggedNodeId) {
+            state.hasDraggedMoved = true;
+            const map = getActiveMap();
+            const node = map.nodes.find(n => n.id === state.draggedNodeId);
+            if (node) {
+                node.x = (e.clientX - state.viewport.x) / state.viewport.scale - state.dragOffset.x;
+                node.y = (e.clientY - state.viewport.y) / state.viewport.scale - state.dragOffset.y;
+                if (map.layout !== 'freeform') { map.layout = 'freeform'; updateLayoutButtonsUI('freeform'); }
+                const el = nodesLayer.querySelector(`[data-id="${node.id}"]`);
+                if (el) el.style.transform = `translate(${node.x}px, ${node.y}px)`;
+                requestAnimationFrame(() => renderConnections());
+            }
+        } else if (state.isPanning) {
+            state.viewport.x = e.clientX - state.panStart.x;
+            state.viewport.y = e.clientY - state.panStart.y;
+            updateWorldTransform();
+        }
+    });
+
+    window.addEventListener('pointerup', () => {
+        if (state.draggedNodeId) {
+            const map = getActiveMap();
+            const n = map.nodes.find(x => x.id === state.draggedNodeId);
+            if (n) { n.modifiedAt = nowFormatted(); touchActiveMap(); }
+            if (!state.hasDraggedMoved) openInspector(state.draggedNodeId);
+            else saveToLocalStorage();
+            state.draggedNodeId = null;
+        }
+        state.isPanning = false;
+    });
+
+    canvasViewport.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const f = e.deltaY < 0 ? 1.1 : 0.9;
+        const ns = Math.min(2.2, Math.max(0.35, state.viewport.scale * f));
+        const rect = canvasViewport.getBoundingClientRect();
+        const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
+        state.viewport.x = cx - (cx - state.viewport.x) * (ns / state.viewport.scale);
+        state.viewport.y = cy - (cy - state.viewport.y) * (ns / state.viewport.scale);
+        state.viewport.scale = ns;
+        updateWorldTransform();
+    }, { passive: false });
+
+    $('zoomInBtn').addEventListener('click', () => { state.viewport.scale = Math.min(2.2, state.viewport.scale + 0.15); updateWorldTransform(); });
+    $('zoomOutBtn').addEventListener('click', () => { state.viewport.scale = Math.max(0.35, state.viewport.scale - 0.15); updateWorldTransform(); });
+    $('centerViewBtn').addEventListener('click', () => centerMapOnCanvas(true));
+
+    document.querySelectorAll('.layout-btn').forEach(btn => {
+        btn.addEventListener('click', () => applyAutoLayout(btn.dataset.layout, true));
+    });
+
+    $('addChildQuickBtn').addEventListener('click', () => addChildNode(state.selectedNodeId));
+    $('addSiblingQuickBtn').addEventListener('click', () => addSiblingNode(state.selectedNodeId));
+    $('deleteNodeQuickBtn').addEventListener('click', () => deleteNode(state.selectedNodeId));
+
+    $('searchNodesInput').addEventListener('input', (e) => handleSearch(e.target.value));
+    $('mobileSearchInput').addEventListener('input', (e) => handleSearch(e.target.value));
+    $('clearSearchBtn').addEventListener('click', () => {
+        $('searchNodesInput').value = '';
+        handleSearch('');
+    });
+
+    // Header Buttons
+    $('newMapBtn').addEventListener('click', () => createNewMap());
+    $('headerNewMapBtn').addEventListener('click', () => createNewMap());
+    $('headerDeleteMapBtn').addEventListener('click', () => deleteCurrentMap());
+    $('headerRestoreBtn').addEventListener('click', openMapManagerModal);
+
+    $('openSyncModalBtn').addEventListener('click', () => showModal('syncModal'));
+    $('closeSyncModalBtn').addEventListener('click', () => hideModal('syncModal'));
+    $('openMapManagerBtn').addEventListener('click', openMapManagerModal);
+    $('closeMapManagerBtn').addEventListener('click', () => hideModal('mapManagerModal'));
+    $('openDefaultColorsBtn').addEventListener('click', openDefaultColorsModal);
+    $('closeDefaultColorsBtn').addEventListener('click', () => hideModal('defaultColorsModal'));
+    $('doneDefaultColorsBtn').addEventListener('click', () => hideModal('defaultColorsModal'));
+    $('resetDefaultColorsBtn').addEventListener('click', resetDefaultColors);
+    $('clearTrashBtn').addEventListener('click', clearAllTrash);
+
+    $('resetSampleBtn').addEventListener('click', () => {
+        if (!confirm('Load sample map? This will be added as a new tab.')) return;
+        const sample = createSampleMindMap();
+        state.maps.push(sample);
+        if (!state.openTabIds.includes(sample.id)) state.openTabIds.push(sample.id);
+        state.activeMapId = sample.id;
+        state.selectedNodeId = sample.nodes[0].id;
+        closeInspector();
+        updateLayoutButtonsUI('tree');
+        applyAutoLayout('tree', false);
+        renderAll();
+        centerMapOnCanvas(true);
+        saveToLocalStorage();
+        showToast('Sample loaded', 'success');
+    });
+
+    $('openHelpBtn').addEventListener('click', () => showModal('helpModal'));
+    $('closeHelpModalBtn').addEventListener('click', () => hideModal('helpModal'));
+    $('themeToggleBtn').addEventListener('click', toggleTheme);
+
+    $('closeInspectorBtn').addEventListener('click', closeInspector);
+    $('panelAddChildBtn').addEventListener('click', () => addChildNode(state.selectedNodeId));
+    $('panelDeleteNodeBtn').addEventListener('click', () => deleteNode(state.selectedNodeId));
+
+    $('nodeTitleInput').addEventListener('input', (e) => updateSelectedNode('title', e.target.value));
+    $('nodeStatusSelect').addEventListener('change', (e) => updateSelectedNode('status', e.target.value));
+
+    document.querySelectorAll('.inspector-tab').forEach(tabBtn => {
+        tabBtn.addEventListener('click', () => {
+            const target = tabBtn.dataset.tab;
+            document.querySelectorAll('.inspector-tab').forEach(b => {
+                b.className = 'inspector-tab flex-1 py-1.5 px-1 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center justify-center gap-1';
+            });
+            tabBtn.className = 'inspector-tab flex-1 py-1.5 px-1 rounded-lg text-xs font-semibold bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm flex items-center justify-center gap-1';
+            document.querySelectorAll('.tab-content').forEach(p => p.classList.add('hidden'));
+            $(`tab-${target}`).classList.remove('hidden');
+        });
+    });
+
+    $('nodeNotesInput').addEventListener('input', (e) => {
+        updateSelectedNode('notes', e.target.value);
+        updateMarkdownPreview();
+    });
+    $('toggleMarkdownPreviewBtn').addEventListener('click', () => {
+        state.isMarkdownPreview = !state.isMarkdownPreview;
+        $('nodeNotesInput').classList.toggle('hidden', state.isMarkdownPreview);
+        $('nodeNotesPreview').classList.toggle('hidden', !state.isMarkdownPreview);
+        $('mdPreviewLabel').textContent = state.isMarkdownPreview ? 'Edit' : 'Preview';
+        updateMarkdownPreview();
+    });
+
+    $('nodeCodeInput').addEventListener('input', (e) => {
+        updateSelectedNode('code', e.target.value);
+        updateCodePreview();
+    });
+    $('nodeCodeLangSelect').addEventListener('change', (e) => {
+        updateSelectedNode('codeLang', e.target.value);
+        updateCodePreview();
+    });
+    $('addLanguageBtn').addEventListener('click', addManualLanguage);
+    $('copyCodeSnippetBtn').addEventListener('click', () => {
+        const ta = $('nodeCodeInput');
+        ta.select();
+        document.execCommand('copy');
+        showToast('Code copied', 'success');
+    });
+
+    $('nodeImageUrlInput').addEventListener('input', (e) => {
+        updateSelectedNode('image', e.target.value);
+        updateImagePreview(e.target.value);
+    });
+    $('nodeImageFileInput').addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) compressAndAttachImage(e.target.files[0]);
+    });
+    $('clearImageBtn').addEventListener('click', () => {
+        updateSelectedNode('image', '');
+        $('nodeImageUrlInput').value = '';
+        updateImagePreview('');
+    });
+    
+    const dropZone = $('imageDropZone');
+    ['dragover','dragenter'].forEach(ev => dropZone.addEventListener(ev, (e) => { e.preventDefault(); dropZone.classList.add('border-indigo-500', 'bg-indigo-500/5'); }));
+    ['dragleave','drop'].forEach(ev => dropZone.addEventListener(ev, (e) => { e.preventDefault(); dropZone.classList.remove('border-indigo-500', 'bg-indigo-500/5'); }));
+    dropZone.addEventListener('drop', (e) => {
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) compressAndAttachImage(e.dataTransfer.files[0]);
+    });
+
+    $('addGitCommitBtn').addEventListener('click', addGitCommit);
+    $('gitCommitMsg').addEventListener('keydown', (e) => { if (e.key === 'Enter') addGitCommit(); });
+
+    document.querySelectorAll('.sync-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const target = btn.dataset.synctab;
+            document.querySelectorAll('.sync-tab-btn').forEach(b => {
+                b.className = 'sync-tab-btn py-3 px-4 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 whitespace-nowrap';
+            });
+            btn.className = 'sync-tab-btn py-3 px-4 text-xs font-bold border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400 whitespace-nowrap';
+            document.querySelectorAll('.sync-tab-panel').forEach(p => p.classList.add('hidden'));
+            $(`synctab-${target}`).classList.remove('hidden');
+        });
+    });
+
+    $('exportJsonBtn').addEventListener('click', exportMindMapJson);
+    $('downloadFullBackupBtn').addEventListener('click', saveFileDirectly);
+    $('importJsonInput').addEventListener('change', (e) => { if (e.target.files[0]) importMindMapJson(e.target.files[0]); });
+    $('connectFirebaseBtn').addEventListener('click', connectFirebaseAndAuth);
+    $('pushFirebaseBtn').addEventListener('click', pushToFirestore);
+    $('pullFirebaseBtn').addEventListener('click', pullFromFirestore);
+    $('authorizeGdriveBtn').addEventListener('click', authorizeGoogleDrive);
+    $('saveToGdriveBtn').addEventListener('click', saveMindMapToGoogleDrive);
+    $('loadFromGdriveBtn').addEventListener('click', loadLatestFromGoogleDrive);
+
+    ['syncModal','mapManagerModal','defaultColorsModal','helpModal'].forEach(id => {
+        $(id).addEventListener('click', (e) => { if (e.target.id === id) hideModal(id); });
+    });
+
+    window.addEventListener('keydown', (e) => {
+        const tag = document.activeElement.tagName.toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+        if (e.key === 'Tab') { e.preventDefault(); addChildNode(state.selectedNodeId); }
+        else if (e.key === 'Enter') { e.preventDefault(); addSiblingNode(state.selectedNodeId); }
+        else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteNode(state.selectedNodeId); }
+        else if (e.key === 'Escape') {
+            closeInspector();
+            ['syncModal','mapManagerModal','defaultColorsModal','helpModal'].forEach(hideModal);
+        }
+    });
+}
+
+function initApp() {
+    const loaded = tryLoad();
+    if (loaded) Object.assign(state, loaded);
+
+    if (!state.maps || !state.maps.length) {
+        const sample = createSampleMindMap();
+        state.maps = [sample];
+        state.activeMapId = sample.id;
+        state.openTabIds = [sample.id];
+        state.selectedNodeId = sample.nodes[0].id;
+    }
+    if (!state.openTabIds || !state.openTabIds.length) state.openTabIds = state.maps.map(m => m.id);
+    if (!state.activeMapId || !state.maps.some(m => m.id === state.activeMapId)) state.activeMapId = state.openTabIds[0] || state.maps[0].id;
+    if (!state.statusColors) state.statusColors = { ...DEFAULT_STATUS_COLORS };
+    if (!state.languages || !state.languages.length) state.languages = [...DEFAULT_LANGUAGES];
+    if (!state.viewport) state.viewport = { x: 40, y: 40, scale: 1 };
+
+    const isDark = state.isDark !== false;
+    document.documentElement.classList.toggle('dark', isDark);
+    canvasViewport.classList.toggle('canvas-grid-dark', isDark);
+    canvasViewport.classList.toggle('canvas-grid-light', !isDark);
+
+    const map = getActiveMap();
+    if (!state.selectedNodeId || !map.nodes.some(n => n.id === state.selectedNodeId)) {
+        state.selectedNodeId = map.nodes[0]?.id || null;
+    }
+
+    populateLanguages();
+    renderFixedColorSwatches();
+    bindEvents();
+    if (window.lucide) lucide.createIcons();
+
+    updateLayoutButtonsUI(map.layout || 'tree');
+    renderAll();
+    updateWorldTransform();
+    loadSavedCloudConfigs();
+    updateTrashBadge();
+
+    if (state.selectedNodeId) openInspector(state.selectedNodeId);
+
+    saveStatusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span><span>Auto-Saved • சேமிக்கப்பட்டது</span>`;
+}
+
+window.addEventListener('DOMContentLoaded', initApp);
+</script>
+</body>
+</html>
