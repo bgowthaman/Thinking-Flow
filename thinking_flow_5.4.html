@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thinking Flow • Modular Mind Map Studio</title>
+    
+    <!-- ================= EXTERNAL LIBRARIES ================= -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { fontFamily: {
+                sans: ['Inter','Noto Sans Tamil','sans-serif'],
+                mono: ['JetBrains Mono','Fira Code','monospace'],
+            }}}
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Tamil:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <!-- ================= STYLES (CSS MODULE) ================= -->
+    <style>
+        /* Base & Canvas */
+        body { overflow: hidden; user-select: none; -webkit-tap-highlight-color: transparent; }
+        .canvas-grid-light { background-color:#f8fafc; background-image:radial-gradient(#cbd5e1 1.25px, transparent 1.25px); background-size:24px 24px; }
+        .canvas-grid-dark  { background-color:#090d16; background-image:radial-gradient(#1e293b 1.25px, transparent 1.25px); background-size:24px 24px; }
+        .layout-animating .mind-node { transition: transform .35s cubic-bezier(.22,1,.36,1); }
+        .layout-animating .connector-path { transition: d .35s cubic-bezier(.22,1,.36,1); }
+        
+        /* Components */
+        .node-selected { box-shadow: 0 0 0 3px rgba(99,102,241,.5), 0 12px 28px -6px rgba(0,0,0,.35); z-index: 10; }
+        .node-locked { border-style: dashed !important; opacity: 0.85; background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.02) 10px, rgba(255,255,255,0.02) 20px); }
+        #selectionBox { position: absolute; border: 2px dashed #6366f1; background: rgba(99,102,241,0.1); pointer-events: none; display: none; z-index: 100; }
+        
+        /* Scrollbars */
+        ::-webkit-scrollbar { width:6px; height:6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(148,163,184,.3); border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,.5); }
+
+        /* Markdown */
+        .markdown-body h1 { font-size:1.25rem; font-weight:700; margin-bottom:.5rem; }
+        .markdown-body h2 { font-size:1.1rem; font-weight:600; margin-top:.75rem; margin-bottom:.4rem; }
+        .markdown-body p { margin-bottom:.5rem; line-height:1.5; }
+        .markdown-body ul { list-style-type:disc; padding-left:1.25rem; margin-bottom:.5rem; }
+        .markdown-body ol { list-style-type:decimal; padding-left:1.25rem; margin-bottom:.5rem; }
+        .markdown-body code { background: rgba(148,163,184,.2); padding:.1rem .3rem; border-radius:.25rem; font-family:'JetBrains Mono',monospace; font-size:.85em; }
+        .markdown-body blockquote { border-left:3px solid #6366f1; padding-left:.75rem; opacity:.85; font-style:italic; }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-[#090d16] text-slate-800 dark:text-slate-100 font-sans antialiased h-screen w-screen flex flex-col">
+
+    <!-- ================= WELCOME SCREEN (AUTH MODULE) ================= -->
+    <div id="welcomeScreen" class="fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-center p-4">
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-900/40 via-slate-950 to-slate-950"></div>
+        <div class="relative z-10 max-w-md w-full bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-3xl p-8 shadow-2xl text-center space-y-6">
+            <div class="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
+                <i data-lucide="network" class="w-8 h-8"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold text-white mb-2">Thinking Flow</h1>
+                <p class="text-sm text-slate-400">Sign in to sync across devices, or continue offline.</p>
+            </div>
+            <div class="space-y-3">
+                <button onclick="Auth.loginGoogle()" class="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl bg-white text-slate-900 font-semibold hover:bg-slate-100 transition shadow-lg">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                    Sign in with Google
+                </button>
+                <button onclick="Auth.continueOffline()" class="w-full px-4 py-3 rounded-xl bg-slate-800 text-slate-300 font-semibold hover:bg-slate-700 transition">
+                    Continue Offline
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MAIN APPLICATION ================= -->
+    <div id="appContainer" class="flex-1 flex flex-col hidden h-full w-full relative">
+
+        <!-- TOP HEADER -->
+        <header class="fixed top-3 left-3 right-3 z-30 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+            <div class="pointer-events-auto flex items-center gap-2.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 px-3.5 py-2 rounded-2xl shadow-lg">
+                <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-inner">
+                    <i data-lucide="network" class="w-4 h-4"></i>
+                </div>
+                <div class="flex flex-col">
+                    <input id="mapTitleInput" type="text" value="Project Thinking Flow" class="bg-transparent font-bold text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-indigo-500/50 rounded px-1 -ml-1 w-36 sm:w-52 truncate" />
+                    <span id="saveStatusBadge" class="text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span><span>Auto-Saved</span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Map Tabs -->
+            <div class="pointer-events-auto flex-1 max-w-md mx-2 flex items-center gap-1.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 px-2 py-1.5 rounded-xl shadow-lg overflow-x-auto">
+                <div id="mapTabsList" class="flex items-center gap-1.5 flex-1 min-w-0 overflow-x-auto"></div>
+            </div>
+
+            <div class="pointer-events-auto flex items-center gap-1.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 px-2 py-1.5 rounded-2xl shadow-lg">
+                <button id="themeToggleBtn" class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Theme">
+                    <i data-lucide="sun" class="w-4 h-4 hidden dark:block text-amber-400"></i>
+                    <i data-lucide="moon" class="w-4 h-4 block dark:hidden text-indigo-600"></i>
+                </button>
+                <button id="userProfileBtn" class="p-1 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition relative" title="Account">
+                    <img id="userAvatar" src="" class="w-6 h-6 rounded-lg hidden object-cover">
+                    <div id="userIcon" class="w-6 h-6 flex items-center justify-center text-slate-500"><i data-lucide="user" class="w-4 h-4"></i></div>
+                </button>
+            </div>
+        </header>
+
+        <!-- CANVAS -->
+        <main id="canvasViewport" class="relative flex-1 w-full h-full overflow-hidden canvas-grid-dark">
+            <div id="canvasWorld" class="absolute top-0 left-0 origin-top-left will-change-transform" style="transform: translate(0px,0px) scale(1);">
+                <svg id="connectionsLayer" class="absolute top-0 left-0 overflow-visible pointer-events-none" width="1" height="1"></svg>
+                <div id="nodesLayer" class="relative"></div>
+            </div>
+            <div id="selectionBox"></div>
+        </main>
+
+        <!-- BOTTOM CENTER DOCK (DEEPSEEK STYLE) -->
+        <div class="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-full max-w-5xl px-2 pointer-events-none flex justify-center">
+            <div class="pointer-events-auto flex items-center gap-1.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 p-2 rounded-2xl shadow-2xl overflow-x-auto whitespace-nowrap">
+                
+                <!-- Search -->
+                <div class="relative flex items-center shrink-0">
+                    <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-2.5"></i>
+                    <input id="searchNodesInput" type="text" placeholder="Search..." class="pl-8 pr-3 py-1.5 text-xs bg-slate-100 dark:bg-slate-800/80 border border-transparent focus:border-indigo-500 rounded-xl focus:outline-none w-32 lg:w-48 transition-all" />
+                </div>
+
+                <div class="h-6 w-[1px] bg-slate-200 dark:bg-slate-700 mx-1 shrink-0"></div>
+
+                <!-- Layouts -->
+                <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-medium shrink-0">
+                    <button data-layout="tree" class="layout-btn px-2.5 py-1 rounded-lg bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400 flex items-center gap-1 transition"><i data-lucide="git-fork" class="w-3.5 h-3.5"></i><span class="hidden sm:inline">Tree</span></button>
+                    <button data-layout="radial" class="layout-btn px-2.5 py-1 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 transition"><i data-lucide="sun" class="w-3.5 h-3.5"></i><span class="hidden sm:inline">Radial</span></button>
+                    <button data-layout="freeform" class="layout-btn px-2.5 py-1 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 transition"><i data-lucide="move" class="w-3.5 h-3.5"></i><span class="hidden sm:inline">Free</span></button>
+                </div>
+
+                <div class="h-6 w-[1px] bg-slate-200 dark:bg-slate-700 mx-1 shrink-0"></div>
+
+                <!-- Tools -->
+                <button id="addChildQuickBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition shrink-0" title="Add Child (Tab)">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i><span class="hidden sm:inline">+ Child</span>
+                </button>
+                <button id="addSiblingQuickBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition shrink-0" title="Add Sibling (Enter)">
+                    <i data-lucide="git-commit" class="w-4 h-4"></i><span class="hidden sm:inline">+ Sibling</span>
+                </button>
+                <button id="toolLock" class="p-2 rounded-xl text-amber-500 hover:bg-amber-500/10 transition shrink-0" title="Lock/Unlock Nodes"><i data-lucide="lock" class="w-4 h-4"></i></button>
+                <button id="toolDelete" class="p-2 rounded-xl text-rose-500 hover:bg-rose-500/10 transition shrink-0" title="Delete Nodes"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+
+                <div class="h-6 w-[1px] bg-slate-200 dark:bg-slate-700 mx-1 shrink-0"></div>
+
+                <!-- Zoom -->
+                <button id="zoomOutBtn" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0"><i data-lucide="zoom-out" class="w-4 h-4"></i></button>
+                <button id="zoomInBtn" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0"><i data-lucide="zoom-in" class="w-4 h-4"></i></button>
+
+                <div class="h-6 w-[1px] bg-slate-200 dark:bg-slate-700 mx-1 shrink-0"></div>
+
+                <!-- Menu -->
+                <button id="headerNewMapBtn" class="p-2 rounded-xl text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition shrink-0" title="New Map"><i data-lucide="file-plus" class="w-4 h-4"></i></button>
+                <button id="openMapManagerBtn" class="p-2 rounded-xl text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition shrink-0 relative" title="Maps & Restore">
+                    <i data-lucide="folder-open" class="w-4 h-4"></i>
+                    <span id="headerTrashBadge" class="absolute -top-1 -right-1 min-w-[14px] h-3.5 px-0.5 rounded-full bg-rose-500 text-white text-[8px] font-bold flex items-center justify-center hidden">0</span>
+                </button>
+                <button id="openSyncModalBtn" class="p-2 rounded-xl text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition shrink-0" title="Cloud Sync"><i data-lucide="cloud" class="w-4 h-4"></i></button>
+                <button id="openSettingsBtn" class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition shrink-0" title="Settings"><i data-lucide="settings" class="w-4 h-4"></i></button>
+            </div>
+        </div>
+
+        <!-- INSPECTOR PANEL -->
+        <aside id="nodeInspectorPanel" class="fixed top-3 bottom-3 right-3 w-[calc(100%-1.5rem)] sm:w-[440px] z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl flex flex-col transform translate-x-[110%] transition-transform duration-300 ease-out">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800">
+                <div class="flex items-center gap-2">
+                    <span id="inspectorColorDot" class="w-3.5 h-3.5 rounded-full bg-indigo-500 shadow"></span>
+                    <h2 class="font-bold text-sm tracking-wide uppercase text-slate-500 dark:text-slate-400">Node Details</h2>
+                </div>
+                <div class="flex items-center gap-1">
+                    <button id="panelLockBtn" class="p-1.5 rounded-lg text-amber-500 hover:bg-amber-500/10 text-xs font-medium flex items-center gap-1" title="Lock Node">
+                        <i data-lucide="lock" class="w-4 h-4"></i> Lock
+                    </button>
+                    <button id="closeInspectorBtn" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 px-4 py-2 border-b border-slate-200 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-950/50">
+                <div class="flex items-center gap-1.5"><i data-lucide="calendar-plus" class="w-3 h-3"></i><span>Created: <strong id="nodeCreatedAt">--</strong></span></div>
+                <div class="flex items-center gap-1.5"><i data-lucide="calendar-clock" class="w-3 h-3"></i><span>Modified: <strong id="nodeModifiedAt">--</strong></span></div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-5 space-y-5 select-text">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Node Title</label>
+                    <input id="nodeTitleInput" type="text" placeholder="Enter node title..." class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 focus:border-indigo-500 focus:outline-none font-semibold text-base" />
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Status</label>
+                        <select id="nodeStatusSelect" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-xs font-medium focus:border-indigo-500 focus:outline-none">
+                            <option value="Idea">💡 Idea</option>
+                            <option value="In Progress">⚡ In Progress</option>
+                            <option value="Done">✅ Done</option>
+                            <option value="Hardware">🔧 Hardware</option>
+                            <option value="Code">💻 Code</option>
+                            <option value="Research">🔬 Research</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Color</label>
+                        <div id="colorPalettePicker" class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/90 px-2 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 overflow-x-auto"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-3">
+                        <button data-tab="notes" class="inspector-tab flex-1 py-1.5 px-1 rounded-lg text-xs font-semibold bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm flex items-center justify-center gap-1"><i data-lucide="file-text" class="w-3.5 h-3.5"></i><span>Notes</span></button>
+                        <button data-tab="code" class="inspector-tab flex-1 py-1.5 px-1 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center justify-center gap-1"><i data-lucide="code-2" class="w-3.5 h-3.5"></i><span>Code</span></button>
+                        <button data-tab="media" class="inspector-tab flex-1 py-1.5 px-1 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center justify-center gap-1"><i data-lucide="image" class="w-3.5 h-3.5"></i><span>Media</span></button>
+                    </div>
+
+                    <div id="tab-notes" class="tab-content space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-slate-500 dark:text-slate-400">Markdown</span>
+                            <button id="toggleMarkdownPreviewBtn" class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"><i data-lucide="eye" class="w-3.5 h-3.5"></i><span id="mdPreviewLabel">Preview</span></button>
+                        </div>
+                        <textarea id="nodeNotesInput" rows="8" placeholder="Write notes..." class="w-full p-3 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 focus:border-indigo-500 focus:outline-none text-sm leading-relaxed resize-y"></textarea>
+                        <div id="nodeNotesPreview" class="hidden markdown-body p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-sm min-h-[180px]"></div>
+                    </div>
+
+                    <div id="tab-code" class="tab-content hidden space-y-2.5">
+                        <div class="flex items-center justify-between gap-2">
+                            <select id="nodeCodeLangSelect" class="flex-1 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono">
+                                <option value="javascript">JavaScript</option>
+                                <option value="python">Python</option>
+                                <option value="cpp">C / C++</option>
+                                <option value="html">HTML</option>
+                            </select>
+                            <button id="copyCodeSnippetBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition"><i data-lucide="copy" class="w-3.5 h-3.5"></i><span>Copy</span></button>
+                        </div>
+                        <textarea id="nodeCodeInput" rows="8" spellcheck="false" placeholder="// Paste code..." class="w-full p-3 rounded-xl bg-slate-950 text-emerald-400 font-mono text-xs leading-relaxed border border-slate-800 focus:border-indigo-500 focus:outline-none resize-y"></textarea>
+                        <div class="rounded-xl overflow-hidden border border-slate-800">
+                            <pre class="m-0 p-3 bg-[#282c34] text-xs overflow-x-auto"><code id="nodeCodePreview" class="language-javascript"></code></pre>
+                        </div>
+                    </div>
+
+                    <div id="tab-media" class="tab-content hidden space-y-3">
+                        <div class="flex gap-2">
+                            <input id="nodeImageUrlInput" type="url" placeholder="https://..." class="flex-1 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs focus:border-indigo-500 focus:outline-none" />
+                            <button id="clearImageBtn" class="px-2.5 py-2 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 text-xs font-medium">Clear</button>
+                        </div>
+                        <div class="relative border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-4 text-center hover:border-indigo-500 transition cursor-pointer" id="imageDropZone">
+                            <input id="nodeImageFileInput" type="file" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                            <i data-lucide="upload-cloud" class="w-7 h-7 mx-auto text-indigo-500 mb-1"></i>
+                            <p class="text-xs font-semibold">Click or Drop Image</p>
+                        </div>
+                        <div id="nodeImagePreviewContainer" class="hidden rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-950">
+                            <img id="nodeImagePreview" src="" class="w-full max-h-64 object-contain mx-auto" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="px-5 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+                <span id="nodeMetaInfo">ID: --</span>
+                <button id="panelDeleteNodeBtn" class="text-rose-500 hover:underline flex items-center gap-1 font-medium"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Delete</button>
+            </div>
+        </aside>
+
+        <!-- MODALS -->
+        <div id="syncModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+                <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+                    <h3 class="font-bold text-base">Cloud Sync & Backup</h3>
+                    <button id="closeSyncModalBtn" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
+                <div class="p-6 overflow-y-auto space-y-5">
+                    <div class="flex gap-4">
+                        <button id="exportJsonBtn" class="flex-1 flex flex-col items-center justify-center gap-2 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-indigo-500"><i data-lucide="download" class="w-6 h-6 text-indigo-500"></i><span class="text-xs font-bold">Export JSON</span></button>
+                        <label class="flex-1 flex flex-col items-center justify-center gap-2 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-emerald-500 cursor-pointer"><i data-lucide="upload" class="w-6 h-6 text-emerald-500"></i><span class="text-xs font-bold">Import JSON</span><input id="importJsonInput" type="file" accept=".json" class="hidden" /></label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="mapManagerModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+                <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+                    <h3 class="font-bold text-base">All Maps & Restore Bin</h3>
+                    <button id="closeMapManagerBtn" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
+                <div class="p-6 overflow-y-auto space-y-4">
+                    <div id="mapManagerList" class="space-y-2"></div>
+                    <div class="pt-4 border-t border-slate-200 dark:border-slate-800">
+                        <h4 class="text-xs font-bold text-slate-500 mb-2">Restore Bin</h4>
+                        <div id="restoreList" class="space-y-2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="toastContainer" class="fixed bottom-24 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+    </div>
+
+    <!-- ================= APP LOGIC (JS MODULE) ================= -->
+    <script>
+        // ==========================================
+        // 1. STATE MANAGEMENT
+        // ==========================================
+        const DEFAULT_COLORS = { 'Idea': '#eab308', 'Code': '#3b82f6', 'In Progress': '#f97316', 'Hardware': '#a855f7', 'Research': '#06b6d4', 'Done': '#22c55e' };
+        const MERGED_KEY = 'thinking_flow_v7_modular';
+
+        const AppState = {
+            maps: [], activeMapId: null, openTabIds: [], trash: [],
+            statusColors: { ...DEFAULT_COLORS },
+            selectedNodeIds: [], selectedNodeId: null,
+            viewport: { x: 40, y: 40, scale: 1 },
+            isPanning: false, panStart: { x: 0, y: 0 },
+            isSelecting: false, selectionBox: { startX: 0, startY: 0, endX: 0, endY: 0 },
+            draggedNodeId: null, dragOffset: { x: 0, y: 0 }, hasDraggedMoved: false,
+            isDark: true, user: null
+        };
+
+        // ==========================================
+        // 2. UTILITIES
+        // ==========================================
+        const Utils = {
+            now: () => new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) + ' ' + new Date().toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' }),
+            esc: (s) => !s ? '' : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'),
+            $: (id) => document.getElementById(id),
+            toast: (msg, type = 'info') => {
+                const t = document.createElement('div');
+                const colors = { info: 'bg-slate-900', success: 'bg-emerald-600', error: 'bg-rose-600' };
+                t.className = `pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/20 shadow-xl text-xs font-semibold text-white transform transition-all duration-300 translate-y-2 opacity-0 ${colors[type]}`;
+                t.innerHTML = `<span>${msg}</span>`;
+                Utils.$('toastContainer').appendChild(t);
+                requestAnimationFrame(() => t.classList.remove('translate-y-2', 'opacity-0'));
+                setTimeout(() => { t.classList.add('translate-y-2', 'opacity-0'); setTimeout(() => t.remove(), 300); }, 3000);
+            }
+        };
+
+        const $ = Utils.$;
+
+        // ==========================================
+        // 3. STORAGE & AUTH MODULE
+        // ==========================================
+        const Storage = {
+            save: () => {
+                const payload = {
+                    maps: AppState.maps, activeMapId: AppState.activeMapId, openTabIds: AppState.openTabIds,
+                    trash: AppState.trash, statusColors: AppState.statusColors, isDark: AppState.isDark
+                };
+                localStorage.setItem(MERGED_KEY, JSON.stringify(payload));
+                $('saveStatusBadge').innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span><span>Auto-Saved</span>`;
+            },
+            load: () => {
+                try {
+                    const raw = localStorage.getItem(MERGED_KEY);
+                    if (raw) {
+                        const parsed = JSON.parse(raw);
+                        Object.assign(AppState, parsed);
+                    }
+                } catch(e) {}
+            }
+        };
+
+        const Auth = {
+            init: () => {
+                // Config here...
+                setTimeout(() => { Auth.enter(); }, 100); 
+            },
+            enter: () => {
+                $('welcomeScreen').style.display = 'none';
+                $('appContainer').classList.remove('hidden');
+                App.init();
+            },
+            loginGoogle: () => { alert('Add Firebase Config to enable Google Login.'); Auth.enter(); },
+            continueOffline: () => { Auth.enter(); }
+        };
+
+        // ==========================================
+        // 4. RENDER ENGINE (UI MODULE)
+        // ==========================================
+        const UI = {
+            render: () => {
+                UI.nodes();
+                UI.connections();
+                UI.tabs();
+                if (window.lucide) lucide.createIcons();
+                requestAnimationFrame(UI.connections);
+            },
+            tabs: () => {
+                const list = $('mapTabsList'); list.innerHTML = '';
+                AppState.openTabIds.forEach(id => {
+                    const m = AppState.maps.find(x => x.id === id); if (!m) return;
+                    const active = id === AppState.activeMapId;
+                    const pill = document.createElement('div');
+                    pill.className = `shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer border ${active ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-100 text-slate-700 border-slate-200'}`;
+                    pill.innerHTML = `<span class="truncate max-w-[100px]">${Utils.esc(m.title)}</span>`;
+                    pill.onclick = () => App.switchMap(id);
+                    list.appendChild(pill);
+                });
+            },
+            nodes: () => {
+                const layer = $('nodesLayer'); layer.innerHTML = '';
+                const map = App.getActiveMap(); if (!map) return;
+
+                map.nodes.forEach(node => {
+                    const isSel = AppState.selectedNodeIds.includes(node.id);
+                    const meta = { 'Idea':'💡', 'Code':'💻', 'Done':'✅', 'Hardware':'🔧', 'Research':'🔬', 'In Progress':'⚡' }[node.status] || '💡';
+                    
+                    const el = document.createElement('div');
+                    el.dataset.id = node.id;
+                    el.style.transform = `translate(${node.x}px, ${node.y}px)`;
+                    el.style.borderLeftColor = node.color || '#6366f1';
+                    el.className = `mind-node absolute top-0 left-0 w-64 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 border-l-4 p-3.5 shadow-lg cursor-pointer overflow-hidden ${isSel ? 'node-selected' : ''} ${node.locked ? 'node-locked' : ''}`;
+
+                    el.innerHTML = `
+                        <div class="flex justify-between items-center mb-1.5 min-h-[20px]">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">${meta} ${Utils.esc(node.status)}</span>
+                            <div class="flex gap-1.5 text-slate-400 shrink-0">
+                                ${node.locked ? '<i data-lucide="lock" class="w-3.5 h-3.5 text-rose-500"></i>' : ''}
+                                ${node.notes ? '<i data-lucide="file-text" class="w-3.5 h-3.5 text-sky-400"></i>' : ''}
+                                ${node.code ? '<i data-lucide="code-2" class="w-3.5 h-3.5 text-emerald-400"></i>' : ''}
+                            </div>
+                        </div>
+                        <div class="font-bold text-sm leading-tight truncate">${Utils.esc(node.title)}</div>
+                    `;
+                    el.addEventListener('pointerdown', (e) => Events.nodeDragStart(e, node.id));
+                    layer.appendChild(el);
+                });
+            },
+            connections: () => {
+                const layer = $('connectionsLayer'); layer.innerHTML = '';
+                const map = App.getActiveMap(); if (!map) return;
+                const nodeMap = new Map(map.nodes.map(n => [n.id, n]));
+
+                map.nodes.forEach(node => {
+                    if (!node.parentId) return;
+                    const p = nodeMap.get(node.parentId); if (!p) return;
+                    
+                    const pEl = document.querySelector(`[data-id="${p.id}"]`);
+                    const cEl = document.querySelector(`[data-id="${node.id}"]`);
+                    const pH = pEl ? pEl.offsetHeight : 84;
+                    const cH = cEl ? cEl.offsetHeight : 84;
+                    const w = 256;
+
+                    const sx = p.x + w, sy = p.y + pH/2;
+                    const ex = node.x, ey = node.y + cH/2;
+                    const dx = Math.max(Math.abs(ex - sx) * 0.5, 50);
+
+                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    path.setAttribute('d', `M ${sx} ${sy} C ${sx+dx} ${sy}, ${ex-dx} ${ey}, ${ex} ${ey}`);
+                    path.setAttribute('fill', 'none');
+                    path.setAttribute('stroke', node.color || '#6366f1');
+                    path.setAttribute('stroke-width', '2.5');
+                    path.setAttribute('stroke-opacity', '0.6');
+                    layer.appendChild(path);
+                });
+            },
+            inspector: (id) => {
+                AppState.selectedNodeId = id;
+                const n = App.getActiveMap().nodes.find(x => x.id === id);
+                if (!n) return;
+
+                $('nodeTitleInput').value = n.title || '';
+                $('nodeStatusSelect').value = n.status || 'Idea';
+                $('nodeNotesInput').value = n.notes || '';
+                $('nodeCodeInput').value = n.code || '';
+                $('nodeImageUrlInput').value = n.image || '';
+                $('nodeCreatedAt').textContent = n.createdAt || '--';
+                $('nodeModifiedAt').textContent = n.modifiedAt || '--';
+                
+                $('panelLockBtn').innerHTML = n.locked ? '<i data-lucide="unlock" class="w-4 h-4"></i> Unlock' : '<i data-lucide="lock" class="w-4 h-4"></i> Lock';
+                $('inspectorColorDot').style.backgroundColor = n.color || '#6366f1';
+                
+                const box = $('nodeImagePreviewContainer');
+                if (n.image) { $('nodeImagePreview').src = n.image; box.classList.remove('hidden'); } 
+                else { box.classList.add('hidden'); }
+
+                $('nodeInspectorPanel').classList.remove('translate-x-[110%]');
+                UI.render();
+            }
+        };
+
+        // ==========================================
+        // 5. LAYOUT ALGORITHMS
+        // ==========================================
+        const Layout = {
+            apply: (mode) => {
+                const map = App.getActiveMap();
+                map.layout = mode;
+                
+                // Highlight Button
+                document.querySelectorAll('.layout-btn').forEach(b => {
+                    b.className = b.dataset.layout === mode ? 'layout-btn px-2.5 py-1 rounded-lg bg-white dark:bg-slate-700 shadow-sm text-indigo-600 font-semibold flex gap-1' : 'layout-btn px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 flex gap-1';
+                });
+
+                if (mode === 'freeform') return Storage.save();
+
+                const nodes = map.nodes;
+                const root = nodes.find(n => !n.parentId) || nodes[0];
+                if (!root) return;
+
+                const childrenMap = {}; nodes.forEach(n => childrenMap[n.id] = []);
+                nodes.forEach(n => { if (n.parentId && childrenMap[n.parentId]) childrenMap[n.parentId].push(n); });
+
+                if (mode === 'tree') {
+                    let cy = 100;
+                    const walk = (node, depth) => {
+                        if (node.locked) return;
+                        node.x = 100 + depth * 320;
+                        const kids = childrenMap[node.id] || [];
+                        if (kids.length === 0) { node.y = cy; cy += 120; }
+                        else {
+                            kids.forEach(k => walk(k, depth + 1));
+                            const unlocked = kids.filter(k => !k.locked);
+                            if (unlocked.length > 0) node.y = (unlocked[0].y + unlocked[unlocked.length-1].y) / 2;
+                        }
+                    };
+                    walk(root, 0);
+                } else if (mode === 'radial') {
+                    const cx = 600, cy = 400;
+                    if (!root.locked) { root.x = cx; root.y = cy; }
+                    const count = n => { const k = (childrenMap[n.id]||[]).filter(x=>!x.locked); return k.length===0 ? 1 : k.reduce((s,x)=>s+count(x),0); };
+                    const walk = (node, depth, a0, a1) => {
+                        if (node.locked) return;
+                        const kids = (childrenMap[node.id]||[]).filter(x=>!x.locked);
+                        if (kids.length===0) return;
+                        const r = depth * 300;
+                        const tot = kids.reduce((s,k)=>s+count(k), 0);
+                        let cur = a0;
+                        kids.forEach(k => {
+                            const sweep = (a1-a0)*(count(k)/tot);
+                            const mid = cur + sweep/2;
+                            k.x = cx + Math.cos(mid)*r - 128;
+                            k.y = cy + Math.sin(mid)*r - 42;
+                            walk(k, depth+1, cur, cur+sweep);
+                            cur += sweep;
+                        });
+                    };
+                    walk(root, 1, 0, Math.PI*2);
+                }
+                UI.render(); Storage.save();
+            }
+        };
+
+        // ==========================================
+        // 6. APP ACTIONS & NODE CRUD
+        // ==========================================
+        const App = {
+            getActiveMap: () => AppState.maps.find(m => m.id === AppState.activeMapId) || AppState.maps[0],
+            
+            init: () => {
+                Storage.load();
+                if (!AppState.maps || !AppState.maps.length) {
+                    App.createMap('Project Flow');
+                }
+                if (!AppState.activeMapId) AppState.activeMapId = AppState.maps[0].id;
+                
+                document.documentElement.classList.toggle('dark', AppState.isDark);
+                $('canvasViewport').classList.toggle('canvas-grid-dark', AppState.isDark);
+                $('canvasViewport').classList.toggle('canvas-grid-light', !AppState.isDark);
+
+                Events.bind();
+                UI.render();
+            },
+
+            createMap: (title) => {
+                const now = Utils.now();
+                const map = { 
+                    id: 'map_'+Date.now(), title: title, layout: 'tree', createdAt: now, modifiedAt: now, 
+                    nodes: [{ id: 'root_'+Date.now(), parentId: null, title: title, status: 'Idea', color: '#eab308', x: 200, y: 200, locked: false, createdAt: now, modifiedAt: now, notes: '', code: '', image: '' }] 
+                };
+                AppState.maps.push(map);
+                AppState.openTabIds.push(map.id);
+                App.switchMap(map.id);
+            },
+
+            switchMap: (id) => {
+                AppState.activeMapId = id;
+                AppState.selectedNodeIds = [];
+                $('nodeInspectorPanel').classList.add('translate-x-[110%]');
+                UI.render();
+            },
+
+            addNode: (parentId) => {
+                const map = App.getActiveMap();
+                const p = map.nodes.find(n => n.id === parentId) || map.nodes[0];
+                const now = Utils.now();
+                const id = 'node_'+Date.now();
+                map.nodes.push({ id, parentId: p.id, title: 'New Node', status: 'Idea', color: '#eab308', x: p.x+300, y: p.y+50, locked: false, createdAt: now, modifiedAt: now, notes: '', code: '', image: '' });
+                AppState.selectedNodeIds = [id];
+                Layout.apply(map.layout);
+                UI.inspector(id);
+            },
+
+            deleteSelected: () => {
+                if (!AppState.selectedNodeIds.length) return;
+                const map = App.getActiveMap();
+                AppState.selectedNodeIds.forEach(id => {
+                    const target = map.nodes.find(n => n.id === id);
+                    if (target && target.parentId) {
+                        const toDel = new Set([id]); let chg = true;
+                        while(chg) { chg = false; map.nodes.forEach(n => { if (n.parentId && toDel.has(n.parentId) && !toDel.has(n.id)) { toDel.add(n.id); chg = true; } }); }
+                        map.nodes = map.nodes.filter(n => !toDel.has(n.id));
+                    }
+                });
+                AppState.selectedNodeIds = [];
+                $('nodeInspectorPanel').classList.add('translate-x-[110%]');
+                UI.render(); Storage.save();
+            },
+
+            toggleLock: () => {
+                if (!AppState.selectedNodeIds.length) return;
+                const map = App.getActiveMap();
+                const allLocked = AppState.selectedNodeIds.every(id => map.nodes.find(n => n.id === id)?.locked);
+                AppState.selectedNodeIds.forEach(id => { const n = map.nodes.find(x=>x.id===id); if(n) n.locked = !allLocked; });
+                UI.render(); Storage.save();
+            }
+        };
+
+        // ==========================================
+        // 7. EVENT LISTENERS
+        // ==========================================
+        const Events = {
+            bind: () => {
+                // Pan & Select Box
+                $('canvasViewport').addEventListener('pointerdown', (e) => {
+                    if (e.target.closest('.mind-node')) return;
+                    AppState.isPanning = true; AppState.panStart = { x: e.clientX - AppState.viewport.x, y: e.clientY - AppState.viewport.y };
+                    if (!e.shiftKey) { AppState.selectedNodeIds = []; UI.render(); $('nodeInspectorPanel').classList.add('translate-x-[110%]'); }
+                });
+
+                window.addEventListener('pointermove', (e) => {
+                    if (AppState.draggedNodeId) {
+                        AppState.hasDraggedMoved = true;
+                        const map = App.getActiveMap();
+                        const n = map.nodes.find(x => x.id === AppState.draggedNodeId);
+                        if (n && !n.locked) {
+                            const nx = (e.clientX - AppState.viewport.x) / AppState.viewport.scale - AppState.dragOffset.x;
+                            const ny = (e.clientY - AppState.viewport.y) / AppState.viewport.scale - AppState.dragOffset.y;
+                            const dx = nx - n.x, dy = ny - n.y;
+                            map.nodes.forEach(node => { if (AppState.selectedNodeIds.includes(node.id) && !node.locked) { node.x += dx; node.y += dy; } });
+                            UI.render();
+                        }
+                    } else if (AppState.isPanning) {
+                        AppState.viewport.x = e.clientX - AppState.panStart.x;
+                        AppState.viewport.y = e.clientY - AppState.panStart.y;
+                        $('canvasWorld').style.transform = `translate(${AppState.viewport.x}px, ${AppState.viewport.y}px) scale(${AppState.viewport.scale})`;
+                    }
+                });
+
+                window.addEventListener('pointerup', () => { AppState.isPanning = false; AppState.draggedNodeId = null; Storage.save(); });
+
+                // Drag Start
+                Events.nodeDragStart = (e, id) => {
+                    e.stopPropagation();
+                    if (!e.shiftKey) AppState.selectedNodeIds = [id];
+                    else if (!AppState.selectedNodeIds.includes(id)) AppState.selectedNodeIds.push(id);
+                    
+                    AppState.selectedNodeId = id;
+                    AppState.draggedNodeId = id;
+                    AppState.hasDraggedMoved = false;
+                    const n = App.getActiveMap().nodes.find(x => x.id === id);
+                    AppState.dragOffset = { x: (e.clientX - AppState.viewport.x) / AppState.viewport.scale - n.x, y: (e.clientY - AppState.viewport.y) / AppState.viewport.scale - n.y };
+                    UI.render();
+                };
+
+                // Dock Actions
+                $('addChildQuickBtn').onclick = () => App.addNode(AppState.selectedNodeId || App.getActiveMap().nodes[0].id);
+                $('toolLock').onclick = App.toggleLock;
+                $('toolDelete').onclick = App.deleteSelected;
+                $('headerNewMapBtn').onclick = () => { const t = prompt("Map Name:"); if(t) App.createMap(t); };
+                
+                document.querySelectorAll('.layout-btn').forEach(b => b.onclick = () => Layout.apply(b.dataset.layout));
+
+                // Inspector
+                $('closeInspectorBtn').onclick = () => $('nodeInspectorPanel').classList.add('translate-x-[110%]');
+                $('nodeTitleInput').oninput = (e) => { const n = App.getActiveMap().nodes.find(x=>x.id===AppState.selectedNodeId); if(n) { n.title = e.target.value; UI.render(); Storage.save(); } };
+                $('nodeStatusSelect').onchange = (e) => { const n = App.getActiveMap().nodes.find(x=>x.id===AppState.selectedNodeId); if(n) { n.status = e.target.value; n.color = AppState.statusColors[e.target.value] || '#eab308'; UI.render(); Storage.save(); } };
+                $('nodeNotesInput').oninput = (e) => { const n = App.getActiveMap().nodes.find(x=>x.id===AppState.selectedNodeId); if(n) { n.notes = e.target.value; UI.render(); Storage.save(); } };
+                $('panelLockBtn').onclick = App.toggleLock;
+            }
+        };
+
+        // Start
+        window.addEventListener('DOMContentLoaded', () => Auth.init());
+    </script>
+</body>
+</html>

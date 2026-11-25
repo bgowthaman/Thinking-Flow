@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thinking Flow • Mind Map & Project Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { fontFamily: {
+                sans: ['Inter','Noto Sans Tamil','sans-serif'],
+                mono: ['JetBrains Mono','Fira Code','monospace'],
+            }}}
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Tamil:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+    <style>
+        body { overflow: hidden; user-select: none; -webkit-tap-highlight-color: transparent; }
+        .canvas-grid-light { background-color:#f8fafc; background-image:radial-gradient(#cbd5e1 1.25px, transparent 1.25px); background-size:24px 24px; }
+        .canvas-grid-dark  { background-color:#090d16; background-image:radial-gradient(#1e293b 1.25px, transparent 1.25px); background-size:24px 24px; }
+        .layout-animating .mind-node { transition: transform .35s cubic-bezier(.22,1,.36,1); }
+        .layout-animating .connector-path { transition: d .35s cubic-bezier(.22,1,.36,1); }
+        ::-webkit-scrollbar { width:6px; height:6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(148,163,184,.3); border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,.5); }
+        .markdown-body h1 { font-size:1.25rem; font-weight:700; margin-bottom:.5rem; }
+        .markdown-body h2 { font-size:1.1rem; font-weight:600; margin-top:.75rem; margin-bottom:.4rem; }
+        .markdown-body p { margin-bottom:.5rem; line-height:1.5; }
+        .markdown-body ul { list-style-type:disc; padding-left:1.25rem; margin-bottom:.5rem; }
+        .markdown-body ol { list-style-type:decimal; padding-left:1.25rem; margin-bottom:.5rem; }
+        .markdown-body code { background: rgba(148,163,184,.2); padding:.1rem .3rem; border-radius:.25rem; font-family:'JetBrains Mono',monospace; font-size:.85em; }
+        .markdown-body blockquote { border-left:3px solid #6366f1; padding-left:.75rem; opacity:.85; font-style:italic; }
+        
+        .node-selected { box-shadow: 0 0 0 3px rgba(99,102,241,.5), 0 12px 28px -6px rgba(0,0,0,.35); }
+        .node-locked { border-style: dashed !important; opacity: 0.9; }
+        
+        .map-tab-pill { transition: all .15s ease; }
+        .map-tab-pill.active { background: rgb(99 102 241 / 1); color: white; box-shadow: 0 2px 8px rgba(99,102,241,.3); }
+
+        #selectionBox {
+            position: absolute; border: 2px dashed #6366f1; background: rgba(99,102,241,0.1);
+            pointer-events: none; display: none; z-index: 100;
+        }
+
+        /* Bottom Dock Custom Scrollbar */
+        #bottomDock::-webkit-scrollbar { height: 4px; }
+        #bottomDock::-webkit-scrollbar-thumb { background: rgba(148,163,184,.2); }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-[#090d16] text-slate-800 dark:text-slate-100 font-sans antialiased h-screen w-screen flex flex-col">
+
+<!-- ========== WELCOME SCREEN (LOGIN) ========== -->
+<div id="welcomeScreen" class="fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-center p-4">
+    <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-900/40 via-slate-950 to-slate-950"></div>
+    <div class="relative z-10 max-w-md w-full bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-3xl p-8 shadow-2xl text-center space-y-6">
+        <div class="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
+            <i data-lucide="network" class="w-8 h-8"></i>
+        </div>
+        <div>
+            <h1 class="text-2xl font-bold text-white mb-2">Thinking Flow</h1>
+            <p class="text-sm text-slate-400">Your visual project workspace. Sign in to sync across devices, or continue offline.</p>
+        </div>
+        
+        <div class="space-y-3">
+            <button onclick="AppAuth.loginGoogle()" class="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl bg-white text-slate-900 font-semibold hover:bg-slate-100 transition shadow-lg">
+                <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                Sign in with Google
+            </button>
+            <button onclick="AppAuth.continueOffline()" class="w-full px-4 py-3 rounded-xl bg-slate-800 text-slate-300 font-semibold hover:bg-slate-700 transition">
+                Continue Offline
+            </button>
+        </div>
+        <p class="text-[10px] text-slate-500">By continuing, you agree to store data locally in your browser.</p>
+    </div>
+</div>
+
+<!-- ========== MAIN APP ========== -->
+<div id="appContainer" class="flex-1 flex flex-col hidden h-full w-full relative">
+
+    <!-- ========== TOP HEADER ========== -->
+    <header class="fixed top-3 left-3 right-3 z-30 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+        <div class="pointer-events-auto flex items-center gap-2.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 px-3.5 py-2 rounded-2xl shadow-lg">
+            <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-inner">
+                <i data-lucide="network" class="w-4 h-4"></i>
+            </div>
+            <div class="flex flex-col">
+                <input id="mapTitleInput" type="text" value="Project Thinking Flow"
+                    class="bg-transparent font-bold text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-indigo-500/50 rounded px-1 -ml-1 w-36 sm:w-52 truncate"
+                    title="Rename active map" />
+                <span id="saveStatusBadge" class="text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>Auto-Saved</span>
+                </span>
+            </div>
+        </div>
+
+        <div class="pointer-events-auto flex items-center gap-1.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 px-2 py-1.5 rounded-2xl shadow-lg">
+            <button id="themeToggleBtn" class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Toggle Theme">
+                <i data-lucide="sun" class="w-4 h-4 hidden dark:block text-amber-400"></i>
+                <i data-lucide="moon" class="w-4 h-4 block dark:hidden text-indigo-600"></i>
+            </button>
+            <button id="openHelpBtn" class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Shortcuts">
+                <i data-lucide="help-circle" class="w-4 h-4"></i>
+            </button>
+            <button id="userProfileBtn" class="p-1 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Account">
+                <img id="userAvatar" src="" class="w-6 h-6 rounded-lg hidden object-cover">
+                <div id="userIcon" class="w-6 h-6 flex items-center justify-center text-slate-500"><i data-lucide="user" class="w-4 h-4"></i></div>
+            </button>
+        </div>
+    </header>
+
+    <!-- ========== MAP TABS BAR ========== -->
+    <div class="fixed top-[4.75rem] left-3 right-3 z-25 pointer-events-none">
+        <div class="pointer-events-auto flex items-center gap-1.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 px-2 py-1.5 rounded-xl shadow-lg overflow-x-auto">
+            <div id="mapTabsList" class="flex items-center gap-1.5 flex-1 min-w-0 overflow-x-auto"></div>
+        </div>
+    </div>
+
+    <!-- ========== CANVAS ========== -->
+    <main id="canvasViewport" class="relative flex-1 w-full h-full overflow-hidden canvas-grid-dark cursor-grab active:cursor-grabbing">
+        <div id="canvasWorld" class="absolute top-0 left-0 origin-top-left will-change-transform" style="transform: translate(0px,0px) scale(1);">
+            <svg id="connectionsLayer" class="absolute top-0 left-0 overflow-visible pointer-events-none" width="1" height="1"></svg>
+            <div id="nodesLayer" class="relative"></div>
+        </div>
+        <div id="selectionBox"></div>
+    </main>
+
+
+    <!-- ========== BOTTOM CENTER FLOATING DOCK ========== -->
+    <div class="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-full max-w-4xl px-2 pointer-events-none flex justify-center">
+        <div id="bottomDock" class="pointer-events-auto flex items-center gap-1.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 p-2 rounded-2xl shadow-2xl overflow-x-auto whitespace-nowrap">
+            
+            <!-- Search -->
+            <div class="relative flex items-center shrink-0">
+                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-2.5"></i>
+                <input id="searchNodesInput" type="text" placeholder="Search / தேடுக..." class="pl-8 pr-3 py-1.5 text-xs bg-slate-100 dark:bg-slate-800/80 border border-transparent focus:border-indigo-500 rounded-xl focus:outline-none w-36 lg:w-48 transition-all" />
+            </div>
+
+            <div class="h-6 w-[1px] bg-slate-200 dark:bg-slate-700 mx-1 shrink-0"></div>
+
+            <!-- Layouts -->
+            <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-medium shrink-0">
+                <button data-layout="tree" class="layout-btn px-2.5 py-1 rounded-lg bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400 flex items-center gap-1 transition"><i data-lucide="git-fork" class="w-3.5 h-3.5"></i><span class="hidden sm:inline">Tree</span></button>
+                <button data-layout="radial" class="layout-btn px-2.5 py-1 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 transition"><i data-lucide="sun" class="w-3.5 h-3.5"></i><span class="hidden sm:inline">Radial</span></button>
+                <button data-layout="freeform" class="layout-btn px-2.5 py-1 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 transition"><i data-lucide="move" class="w-3.5 h-3.5"></i><span class="hidden sm:inline">Free</span></button>
+            </div>
+
+            <div class="h-6 w-[1px] bg-slate-200 dark:bg-slate-700 mx-1 shrink-0"></div>
+
+            <!-- Tools (Add/Lock/Delete) -->
+            <button id="addChildQuickBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition shrink-0" title="Add Child (Tab)">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i><span>+ Child</span>
+            </button>
+            <button id="addSiblingQuickBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition shrink-0" title="Add Sibling (Enter)">
+                <i data-lucide="git-commit" class="w-4 h-4"></i><span>+ Sibling</span>
+            </button>
+            <button id="toolLock" class="p-2 rounded-xl text-amber-500 hover:bg-amber-500/10 transition shrink-0" title="Lock/Unlock Nodes"><i data-lucide="lock" class="w-4 h-4"></i></button>
+            <button id="toolDelete" class="p-2 rounded-xl text-rose-500 hover:bg-rose-500/10 transition shrink-0" title="Delete Nodes"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+
+            <div class="h-6 w-[1px] bg-slate-200 dark:bg-slate-700 mx-1 shrink-0"></div>
+
+            <!-- Zoom -->
+            <div class="flex items-center gap-0.5 shrink-0">
+                <button id="zoomOutBtn" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300"><i data-lucide="zoom-out" class="w-4 h-4"></i></button>
+                <span class="text-[11px] font-mono font-medium w-8 text-center text-slate-500">100%</span>
+                <button id="zoomInBtn" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300"><i data-lucide="zoom-in" class="w-4 h-4"></i></button>
+                <button id="centerViewBtn" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-indigo-500"><i data-lucide="crosshair" class="w-4 h-4"></i></button>
+            </div>
+
+            <div class="h-6 w-[1px] bg-slate-200 dark:bg-slate-700 mx-1 shrink-0"></div>
+
+            <!-- Maps & Cloud -->
+            <button id="headerNewMapBtn" class="p-2 rounded-xl text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition shrink-0" title="New Map"><i data-lucide="file-plus" class="w-4 h-4"></i></button>
+            <button id="openMapManagerBtn" class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition shrink-0" title="All Maps"><i data-lucide="folder-open" class="w-4 h-4"></i></button>
+            <button id="headerRestoreBtn" class="relative p-2 rounded-xl text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition shrink-0" title="Restore Bin">
+                <i data-lucide="history" class="w-4 h-4"></i>
+                <span id="headerTrashBadge" class="absolute -top-1 -right-1 min-w-[14px] h-3.5 px-0.5 rounded-full bg-rose-500 text-white text-[8px] font-bold flex items-center justify-center hidden">0</span>
+            </button>
+            <button id="headerDeleteMapBtn" class="p-2 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition shrink-0" title="Delete Current Map"><i data-lucide="trash" class="w-4 h-4"></i></button>
+            <button id="openSyncModalBtn" class="p-2 rounded-xl text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition shrink-0" title="Cloud Sync"><i data-lucide="cloud" class="w-4 h-4"></i></button>
+            <button id="openSettingsBtn" class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition shrink-0" title="Settings"><i data-lucide="settings" class="w-4 h-4"></i></button>
+        </div>
+    </div>
+
+    <!-- ========== INSPECTOR PANEL ========== -->
+    <aside id="nodeInspectorPanel" class="fixed top-3 bottom-3 right-3 w-[calc(100%-1.5rem)] sm:w-[440px] z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl flex flex-col transform translate-x-[110%] transition-transform duration-300 ease-out">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800">
+            <div class="flex items-center gap-2">
+                <span id="inspectorColorDot" class="w-3.5 h-3.5 rounded-full bg-indigo-500 shadow"></span>
+                <h2 class="font-bold text-sm tracking-wide uppercase text-slate-500 dark:text-slate-400">Node Details</h2>
+            </div>
+            <div class="flex items-center gap-1">
+                <button id="panelLockBtn" class="p-1.5 rounded-lg text-amber-500 hover:bg-amber-500/10 text-xs font-medium flex items-center gap-1" title="Lock Node">
+                    <i data-lucide="lock" class="w-4 h-4"></i> Lock
+                </button>
+                <button id="panelAddChildBtn" class="p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 text-xs font-medium flex items-center gap-1" title="Add Sub-node">
+                    <i data-lucide="plus" class="w-4 h-4"></i> Sub-node
+                </button>
+                <button id="closeInspectorBtn" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 px-4 py-2 border-b border-slate-200 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-950/50">
+            <div class="flex items-center gap-1.5"><i data-lucide="calendar-plus" class="w-3 h-3"></i><span>Created: <strong id="nodeCreatedAt">--</strong></span></div>
+            <div class="flex items-center gap-1.5"><i data-lucide="calendar-clock" class="w-3 h-3"></i><span>Modified: <strong id="nodeModifiedAt">--</strong></span></div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-5 space-y-5 select-text">
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Node Title / தலைப்பு</label>
+                <input id="nodeTitleInput" type="text" placeholder="Enter node title..."
+                    class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 focus:border-indigo-500 focus:outline-none font-semibold text-base" />
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Status / நிலை</label>
+                    <select id="nodeStatusSelect" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-xs font-medium focus:border-indigo-500 focus:outline-none">
+                        <option value="Idea">💡 Idea</option>
+                        <option value="In Progress">⚡ In Progress</option>
+                        <option value="Done">✅ Done</option>
+                        <option value="Hardware">🔧 Hardware</option>
+                        <option value="Code">💻 Code</option>
+                        <option value="Research">🔬 Research</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Branch Color / நிறம்</label>
+                    <div id="colorPalettePicker" class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/90 px-2 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 overflow-x-auto"></div>
+                </div>
+            </div>
+
+            <div>
+                <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-3">
+                    <button data-tab="notes" class="inspector-tab flex-1 py-1.5 px-1 rounded-lg text-xs font-semibold bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm flex items-center justify-center gap-1">
+                        <i data-lucide="file-text" class="w-3.5 h-3.5"></i><span>Notes</span>
+                    </button>
+                    <button data-tab="code" class="inspector-tab flex-1 py-1.5 px-1 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center justify-center gap-1">
+                        <i data-lucide="code-2" class="w-3.5 h-3.5"></i><span>Code</span>
+                    </button>
+                    <button data-tab="media" class="inspector-tab flex-1 py-1.5 px-1 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center justify-center gap-1">
+                        <i data-lucide="image" class="w-3.5 h-3.5"></i><span>Media</span>
+                    </button>
+                    <button data-tab="git" class="inspector-tab flex-1 py-1.5 px-1 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center justify-center gap-1">
+                        <i data-lucide="git-commit" class="w-3.5 h-3.5"></i><span>Git</span>
+                    </button>
+                </div>
+
+                <div id="tab-notes" class="tab-content space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-slate-500 dark:text-slate-400">Markdown supported</span>
+                        <button id="toggleMarkdownPreviewBtn" class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+                            <i data-lucide="eye" class="w-3.5 h-3.5"></i><span id="mdPreviewLabel">Preview</span>
+                        </button>
+                    </div>
+                    <textarea id="nodeNotesInput" rows="8" placeholder="Write project thoughts..."
+                        class="w-full p-3 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 focus:border-indigo-500 focus:outline-none text-sm leading-relaxed resize-y"></textarea>
+                    <div id="nodeNotesPreview" class="hidden markdown-body p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-sm min-h-[180px]"></div>
+                </div>
+
+                <div id="tab-code" class="tab-content hidden space-y-2.5">
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="flex-1 flex gap-1.5">
+                            <select id="nodeCodeLangSelect" class="flex-1 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono"></select>
+                            <button id="addLanguageBtn" class="px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs hover:bg-slate-200 dark:hover:bg-slate-700 font-bold" title="Add custom language">+</button>
+                        </div>
+                        <button id="copyCodeSnippetBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition">
+                            <i data-lucide="copy" class="w-3.5 h-3.5"></i><span>Copy</span>
+                        </button>
+                    </div>
+                    <textarea id="nodeCodeInput" rows="8" spellcheck="false" placeholder="// Paste your code..."
+                        class="w-full p-3 rounded-xl bg-slate-950 text-emerald-400 font-mono text-xs leading-relaxed border border-slate-800 focus:border-indigo-500 focus:outline-none resize-y"></textarea>
+                    <div class="rounded-xl overflow-hidden border border-slate-800">
+                        <div class="bg-slate-800/90 px-3 py-1 text-[10px] font-mono uppercase tracking-wider text-slate-400 flex justify-between">
+                            <span>Preview</span><span id="codeLangBadge">javascript</span>
+                        </div>
+                        <pre class="m-0 p-3 bg-[#282c34] text-xs overflow-x-auto"><code id="nodeCodePreview" class="language-javascript"></code></pre>
+                    </div>
+                </div>
+
+                <div id="tab-media" class="tab-content hidden space-y-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Image URL</label>
+                        <div class="flex gap-2">
+                            <input id="nodeImageUrlInput" type="url" placeholder="https://..."
+                                class="flex-1 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs focus:border-indigo-500 focus:outline-none" />
+                            <button id="clearImageBtn" class="px-2.5 py-2 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 text-xs font-medium">Clear</button>
+                        </div>
+                    </div>
+                    <div class="relative border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-4 text-center hover:border-indigo-500 transition cursor-pointer" id="imageDropZone">
+                        <input id="nodeImageFileInput" type="file" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                        <i data-lucide="upload-cloud" class="w-7 h-7 mx-auto text-indigo-500 mb-1"></i>
+                        <p class="text-xs font-semibold">Click or Drop Image (Auto-Compressed)</p>
+                    </div>
+                    <div id="nodeImagePreviewContainer" class="hidden rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-950">
+                        <img id="nodeImagePreview" src="" alt="Node Attachment" class="w-full max-h-64 object-contain mx-auto" />
+                    </div>
+                </div>
+
+                <div id="tab-git" class="tab-content hidden space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Commit / Track Note</label>
+                        <div class="flex gap-1.5">
+                            <select id="gitCommitType" class="px-2 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs">
+                                <option value="feat">✨ feat</option>
+                                <option value="code">💻 code</option>
+                                <option value="fix">🐛 fix</option>
+                                <option value="note">📝 note</option>
+                            </select>
+                            <input id="gitCommitMsg" type="text" placeholder="e.g., Added MUX logic..."
+                                class="flex-1 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs focus:border-indigo-500 focus:outline-none" />
+                            <button id="addGitCommitBtn" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold whitespace-nowrap flex items-center gap-1">
+                                <i data-lucide="git-commit" class="w-3.5 h-3.5"></i><span>Commit</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400">History Log</label>
+                        <div id="gitHistoryList" class="space-y-1.5"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="px-5 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+            <span id="nodeMetaInfo">ID: --</span>
+            <button id="panelDeleteNodeBtn" class="text-rose-500 hover:underline flex items-center gap-1 font-medium">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Move to Bin
+            </button>
+        </div>
+    </aside>
+
+    <!-- ========== SYNC MODAL ========== -->
+    <div id="syncModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center"><i data-lucide="cloud-cog" class="w-5 h-5"></i></div>
+                    <div>
+                        <h3 class="font-bold text-base">Cloud Sync & Backup</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">JSON • Firebase Firestore • Google Drive</p>
+                    </div>
+                </div>
+                <button id="closeSyncModalBtn" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="flex border-b border-slate-200 dark:border-slate-800 px-6 bg-slate-50/50 dark:bg-slate-950/30 overflow-x-auto">
+                <button data-synctab="json" class="sync-tab-btn py-3 px-4 text-xs font-bold border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400 whitespace-nowrap">1. JSON Backup</button>
+                <button data-synctab="firebase" class="sync-tab-btn py-3 px-4 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 whitespace-nowrap">2. Firebase</button>
+                <button data-synctab="gdrive" class="sync-tab-btn py-3 px-4 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 whitespace-nowrap">3. Google Drive</button>
+            </div>
+            <div class="p-6 overflow-y-auto space-y-5 text-sm select-text">
+                <div id="synctab-json" class="sync-tab-panel space-y-4">
+                    <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs leading-relaxed">
+                        <strong>Zero-Cost Backup:</strong> Auto-saved in browser LocalStorage. Export as portable <code>.json</code> to store in Google Drive or share across devices.
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <button id="exportJsonBtn" class="flex flex-col items-center justify-center gap-2 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:bg-indigo-500/5 transition">
+                            <i data-lucide="download" class="w-7 h-7 text-indigo-500"></i>
+                            <span class="font-bold text-sm">Export All (.JSON)</span>
+                        </button>
+                        <label class="flex flex-col items-center justify-center gap-2 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-emerald-500 hover:bg-emerald-500/5 transition cursor-pointer">
+                            <i data-lucide="upload" class="w-7 h-7 text-emerald-500"></i>
+                            <span class="font-bold text-sm">Import (.JSON)</span>
+                            <input id="importJsonInput" type="file" accept=".json,application/json" class="hidden" />
+                        </label>
+                    </div>
+                </div>
+
+                <div id="synctab-firebase" class="sync-tab-panel hidden space-y-4">
+                    <div class="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-200 space-y-1">
+                        <p class="font-bold">Firebase Free Spark Plan Setup:</p>
+                        <p>1. Create a free project at <code>console.firebase.google.com</code>.</p>
+                        <p>2. Paste your Web App <code>firebaseConfig</code> JSON below.</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1">Firebase Web Config JSON</label>
+                        <textarea id="firebaseConfigInput" rows="5" placeholder='{"apiKey":"AIza...","authDomain":"your-app.firebaseapp.com","projectId":"your-app"}'
+                            class="w-full p-3 rounded-xl bg-slate-100 dark:bg-slate-950 font-mono text-xs border border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:outline-none"></textarea>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <button id="connectFirebaseBtn" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold flex items-center gap-1.5">
+                            <i data-lucide="flame" class="w-4 h-4"></i><span>Connect & Sign In</span>
+                        </button>
+                        <div class="flex items-center gap-2">
+                            <button id="pushFirebaseBtn" disabled class="px-3 py-2 rounded-xl bg-indigo-600 disabled:opacity-40 text-white text-xs font-semibold">Push ↑</button>
+                            <button id="pullFirebaseBtn" disabled class="px-3 py-2 rounded-xl bg-emerald-600 disabled:opacity-40 text-white text-xs font-semibold">Pull ↓</button>
+                        </div>
+                    </div>
+                    <p id="firebaseStatusText" class="text-xs text-slate-400">Status: Not connected</p>
+                </div>
+
+                <div id="synctab-gdrive" class="sync-tab-panel hidden space-y-4">
+                    <div class="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-800 dark:text-blue-200 space-y-1">
+                        <p class="font-bold">Google Drive Folder Sync:</p>
+                        <p>Requires OAuth Client ID from Google Cloud Console.</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1">Google OAuth 2.0 Client ID</label>
+                        <input id="gdriveClientIdInput" type="text" placeholder="1234567890-abcdefg.apps.googleusercontent.com"
+                            class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-950 font-mono text-xs border border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:outline-none" />
+                    </div>
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <button id="authorizeGdriveBtn" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5">
+                            <i data-lucide="hard-drive" class="w-4 h-4"></i><span>Authorize Drive</span>
+                        </button>
+                        <div class="flex items-center gap-2">
+                            <button id="saveToGdriveBtn" disabled class="px-3 py-2 rounded-xl bg-indigo-600 disabled:opacity-40 text-white text-xs font-semibold">Save ↑</button>
+                            <button id="loadFromGdriveBtn" disabled class="px-3 py-2 rounded-xl bg-emerald-600 disabled:opacity-40 text-white text-xs font-semibold">Load ↓</button>
+                        </div>
+                    </div>
+                    <p id="gdriveStatusText" class="text-xs text-slate-400">Status: Awaiting OAuth Client ID</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== MAP MANAGER + RESTORE MODAL ========== -->
+    <div id="mapManagerModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center"><i data-lucide="folder-open" class="w-5 h-5"></i></div>
+                    <div>
+                        <h3 class="font-bold text-base">All Maps & Restore Bin</h3>
+                    </div>
+                </div>
+                <button id="closeMapManagerBtn" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto space-y-4 select-text">
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Active Maps</h4>
+                        <button id="openDefaultColorsBtn" class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+                            <i data-lucide="palette" class="w-3.5 h-3.5"></i> Default Colors
+                        </button>
+                    </div>
+                    <div id="mapManagerList" class="space-y-2"></div>
+                </div>
+                <div class="pt-4 border-t border-slate-200 dark:border-slate-800">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Restore Bin (<span id="trashCount">0</span>)</h4>
+                        <button id="clearTrashBtn" class="text-xs font-semibold text-rose-500 hover:underline">Empty Bin</button>
+                    </div>
+                    <div id="restoreList" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== STATUS COLORS MODAL ========== -->
+    <div id="defaultColorsModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="font-bold text-base flex items-center gap-2"><i data-lucide="palette" class="w-5 h-5 text-indigo-500"></i> Default Status Colors</h3>
+                <button id="closeDefaultColorsBtn" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Colors auto-applied when you create or change a node's status.</p>
+            <div id="defaultColorsForm" class="space-y-2"></div>
+            <div class="flex items-center justify-between pt-2">
+                <button id="resetDefaultColorsBtn" class="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold">↺ Reset</button>
+                <button id="doneDefaultColorsBtn" class="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold">Done</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ========== SETTINGS MODAL ========== -->
+    <div id="settingsModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="font-bold text-base flex items-center gap-2"><i data-lucide="settings" class="w-5 h-5 text-indigo-500"></i> Settings & Preferences</h3>
+                <button id="closeSettingsBtn" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <div>
+                        <div class="font-semibold text-sm">Auto-Save to Cloud</div>
+                        <div class="text-xs text-slate-400">Push changes to Firebase automatically</div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="autoSaveCloudToggle" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                </div>
+                <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <div>
+                        <div class="font-semibold text-sm">Dark Theme</div>
+                        <div class="text-xs text-slate-400">Toggle dark mode</div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="themeToggleSetting" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                </div>
+            </div>
+            <button id="doneSettingsBtn" class="w-full px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold mt-2">Done</button>
+        </div>
+    </div>
+
+    <!-- ========== HELP MODAL ========== -->
+    <div id="helpModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="font-bold text-base flex items-center gap-2"><i data-lucide="keyboard" class="w-5 h-5 text-indigo-500"></i> Shortcuts & Guide</h3>
+                <button id="closeHelpModalBtn" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+            <div class="space-y-2.5 text-xs">
+                <div class="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800"><span class="text-slate-500 dark:text-slate-400">Add Child Node</span><kbd class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono font-bold">Tab</kbd></div>
+                <div class="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800"><span class="text-slate-500 dark:text-slate-400">Add Sibling Node</span><kbd class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono font-bold">Enter</kbd></div>
+                <div class="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800"><span class="text-slate-500 dark:text-slate-400">Move Node to Bin</span><kbd class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono font-bold">Delete</kbd></div>
+                <div class="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800"><span class="text-slate-500 dark:text-slate-400">Multi-Select</span><kbd class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono font-bold">Drag Box</kbd></div>
+                <div class="flex justify-between py-1.5"><span class="text-slate-500 dark:text-slate-400">Close Modal</span><kbd class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono font-bold">Esc</kbd></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toastContainer" class="fixed bottom-24 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+</div>
+
+<!-- ========== APP LOGIC ========== -->
+<script>
+const DEFAULT_STATUS_COLORS = {
+    'Idea': '#eab308', 'Code': '#3b82f6', 'In Progress': '#f97316',
+    'Hardware': '#a855f7', 'Research': '#06b6d4', 'Done': '#22c55e'
+};
+const FIXED_PALETTE = [
+    { name: 'Idea Yellow', hex: '#eab308' }, { name: 'Code Blue', hex: '#3b82f6' },
+    { name: 'Done Green', hex: '#22c55e' },  { name: 'Alert Red', hex: '#ef4444' },
+    { name: 'Hardware Purple', hex: '#a855f7' }, { name: 'Cyan Sky', hex: '#06b6d4' },
+    { name: 'Orange', hex: '#f97316' },      { name: 'Pink', hex: '#ec4899' }
+];
+const DEFAULT_LANGUAGES = ['JavaScript','Python','HTML','CSS','C','C++','Verilog','Java','SQL','Bash / Termux','Arduino / ESP','JSON','Markdown'];
+const STATUS_BADGES = {
+    'Idea': { icon: '💡', bg: 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30' },
+    'In Progress': { icon: '⚡', bg: 'bg-blue-500/15 text-blue-600 dark:text-blue-300 border-blue-500/30' },
+    'Done': { icon: '✅', bg: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30' },
+    'Hardware': { icon: '🔧', bg: 'bg-orange-500/15 text-orange-600 dark:text-orange-300 border-orange-500/30' },
+    'Code': { icon: '💻', bg: 'bg-purple-500/15 text-purple-600 dark:text-purple-300 border-purple-500/30' },
+    'Research': { icon: '🔬', bg: 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-300 border-cyan-500/30' }
+};
+const MERGED_KEY = 'thinking_flow_merged_v4';
+const V3_KEY = 'thinking_flow_v3';
+const V1_KEY = 'thinking_flow_mindmap_v1';
+const CONFIG_KEY = 'thinking_flow_cloud_config_v1';
+
+const firebaseConfig = {
+  // PASTE YOUR FIREBASE CONFIG HERE IF YOU WANT CLOUD SYNC
+  // apiKey: "...", authDomain: "...", projectId: "...",
+};
+let firebaseApp, firebaseAuth, firebaseDb;
+let isFirebaseReady = false;
+
+let state = {
+    maps: [], activeMapId: null, openTabIds: [], trash: [],
+    statusColors: { ...DEFAULT_STATUS_COLORS }, languages: [...DEFAULT_LANGUAGES],
+    selectedNodeId: null, selectedNodeIds: [],
+    viewport: { x: 40, y: 40, scale: 1 },
+    searchQuery: '', isMarkdownPreview: false, isDark: true,
+    isPanning: false, panStart: { x: 0, y: 0 },
+    isSelecting: false, selectionBox: { startX: 0, startY: 0, endX: 0, endY: 0 },
+    draggedNodeId: null, dragOffset: { x: 0, y: 0 }, hasDraggedMoved: false,
+    activeTool: 'pointer', 
+    user: null, autoSaveCloud: true,
+    gdriveAccessToken: null
+};
+
+const $ = (id) => document.getElementById(id);
+const canvasViewport = $('canvasViewport');
+const canvasWorld = $('canvasWorld');
+const connectionsLayer = $('connectionsLayer');
+const nodesLayer = $('nodesLayer');
+const mapTitleInput = $('mapTitleInput');
+const saveStatusBadge = $('saveStatusBadge');
+const inspectorPanel = $('nodeInspectorPanel');
+const selectionBoxEl = $('selectionBox');
+
+const AppAuth = {
+    init() {
+        try {
+            if (firebaseConfig.apiKey) {
+                firebaseApp = firebase.initializeApp(firebaseConfig);
+                firebaseAuth = firebase.auth();
+                firebaseDb = firebase.firestore();
+                isFirebaseReady = true;
+                
+                firebaseAuth.onAuthStateChanged(user => {
+                    if (user) {
+                        state.user = user;
+                        $('userAvatar').src = user.photoURL || '';
+                        $('userAvatar').classList.remove('hidden');
+                        $('userIcon').classList.add('hidden');
+                        if ($('welcomeScreen').style.display !== 'none') AppAuth.enterApp();
+                    } else {
+                        state.user = null;
+                        $('userAvatar').classList.add('hidden');
+                        $('userIcon').classList.remove('hidden');
+                    }
+                });
+            } else {
+                console.warn("Firebase config missing. Auth disabled.");
+            }
+        } catch (e) { console.error("Firebase init failed", e); }
+    },
+    loginGoogle() {
+        if (!isFirebaseReady) { showToast('Firebase config missing in code.', 'error'); return; }
+        const provider = new firebase.auth.GoogleAuthProvider();
+        firebaseAuth.signInWithPopup(provider).then(() => AppAuth.enterApp()).catch((error) => showToast('Login failed: ' + error.message, 'error'));
+    },
+    continueOffline() { state.user = null; AppAuth.enterApp(); },
+    enterApp() {
+        $('welcomeScreen').style.opacity = '0';
+        setTimeout(() => {
+            $('welcomeScreen').style.display = 'none';
+            $('appContainer').classList.remove('hidden');
+            initApp();
+        }, 300);
+    },
+    logout() {
+        if (isFirebaseReady) firebaseAuth.signOut();
+        state.user = null;
+        $('appContainer').classList.add('hidden');
+        $('welcomeScreen').style.display = 'flex';
+        $('welcomeScreen').style.opacity = '1';
+    }
+};
+
+function nowFormatted() {
+    const d = new Date();
+    return d.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) + ' ' +
+           d.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+}
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function showToast(msg, type = 'info') {
+    const container = $('toastContainer');
+    const t = document.createElement('div');
+    const colors = {
+        info: 'bg-slate-900 dark:bg-slate-800 text-white border-slate-700',
+        success: 'bg-emerald-600 text-white border-emerald-500',
+        error: 'bg-rose-600 text-white border-rose-500'
+    };
+    t.className = `pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-xl border shadow-xl text-xs font-semibold transform transition-all duration-300 translate-y-2 opacity-0 ${colors[type] || colors.info}`;
+    t.innerHTML = `<span>${escapeHtml(msg)}</span>`;
+    container.appendChild(t);
+    requestAnimationFrame(() => t.classList.remove('translate-y-2', 'opacity-0'));
+    setTimeout(() => { t.classList.add('translate-y-2', 'opacity-0'); setTimeout(() => t.remove(), 300); }, 3000);
+}
+
+function getActiveMap() { return state.maps.find(m => m.id === state.activeMapId) || state.maps[0]; }
+function touchActiveMap() { const m = getActiveMap(); if (m) m.modifiedAt = nowFormatted(); }
+
+let saveTimeout = null;
+let cloudSaveTimeout = null;
+
+function saveToLocalStorage() {
+    saveStatusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span><span>Saving...</span>`;
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+        try {
+            const payload = {
+                maps: state.maps, activeMapId: state.activeMapId, openTabIds: state.openTabIds,
+                trash: state.trash, statusColors: state.statusColors, languages: state.languages,
+                selectedNodeId: state.selectedNodeId, viewport: state.viewport,
+                searchQuery: state.searchQuery, isDark: state.isDark
+            };
+            localStorage.setItem(MERGED_KEY, JSON.stringify(payload));
+            if (state.user && state.autoSaveCloud && isFirebaseReady) {
+                clearTimeout(cloudSaveTimeout);
+                cloudSaveTimeout = setTimeout(() => pushToFirestore(true), 2000);
+            }
+            saveStatusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span><span>Auto-Saved</span>`;
+            updateTrashBadge();
+        } catch (err) {
+            saveStatusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span><span>Storage Full!</span>`;
+        }
+    }, 250);
+}
+
+function updateTrashBadge() {
+    const badge = $('headerTrashBadge');
+    if (!badge) return;
+    if (state.trash.length > 0) { badge.textContent = state.trash.length; badge.classList.remove('hidden'); }
+    else { badge.classList.add('hidden'); }
+}
+
+function tryLoad() {
+    try {
+        const raw = localStorage.getItem(MERGED_KEY);
+        if (raw) return JSON.parse(raw);
+        const v3raw = localStorage.getItem(V3_KEY);
+        if (v3raw) return migrateV3(JSON.parse(v3raw));
+        const v1raw = localStorage.getItem(V1_KEY);
+        if (v1raw) return migrateV1(JSON.parse(v1raw));
+    } catch (e) { console.warn('Load error:', e); }
+    return null;
+}
+
+function migrateV1(v1) {
+    const now = nowFormatted();
+    const mapId = 'map_' + Date.now();
+    const nodes = (v1.nodes || []).map(n => ({ ...n, locked: false, createdAt: n.createdAt || now, modifiedAt: n.modifiedAt || now, gitLogs: n.gitLogs || [] }));
+    return { maps: [{ id: mapId, title: v1.title || 'Migrated Map', layout: v1.layout || 'tree', createdAt: now, modifiedAt: now, nodes }], activeMapId: mapId, openTabIds: [mapId], trash: [], statusColors: { ...DEFAULT_STATUS_COLORS }, languages: [...DEFAULT_LANGUAGES], selectedNodeId: nodes[0]?.id || null, viewport: { x: 40, y: 40, scale: 1 }, searchQuery: '', isDark: true };
+}
+function migrateV3(v3) {
+    const now = nowFormatted();
+    const maps = (v3.maps || []).map(m => ({ id: m.id || 'map_' + Date.now(), title: m.title || 'Untitled Map', layout: m.layout || 'tree', createdAt: m.createdAt || now, modifiedAt: m.modifiedAt || now, nodes: (m.nodes || []).map(n => ({ ...n, locked: n.locked || false, createdAt: n.createdAt || now, modifiedAt: n.modifiedAt || now, gitLogs: n.gitLogs || [] })) }));
+    return { maps, activeMapId: v3.activeMapId || maps[0]?.id, openTabIds: (v3.openTabIds && v3.openTabIds.length) ? v3.openTabIds : maps.map(m => m.id), trash: v3.trash || [], statusColors: { ...DEFAULT_STATUS_COLORS, ...(v3.statusColors || {}) }, languages: v3.languages && v3.languages.length ? v3.languages : [...DEFAULT_LANGUAGES], selectedNodeId: v3.selectedNodeId || null, viewport: v3.pan ? { x: v3.pan.x, y: v3.pan.y, scale: v3.zoom || 1 } : { x: 40, y: 40, scale: 1 }, searchQuery: '', isDark: v3.theme !== 'light' };
+}
+
+function renderAll() {
+    renderNodes();
+    renderMapTabs();
+    renderTimestampUI();
+    if (window.lucide) lucide.createIcons();
+    requestAnimationFrame(() => renderConnections());
+}
+
+function renderTimestampUI() {
+    const m = getActiveMap();
+    if (document.activeElement !== mapTitleInput && m) mapTitleInput.value = m.title;
+}
+
+function renderMapTabs() {
+    const list = $('mapTabsList');
+    list.innerHTML = '';
+    state.openTabIds.forEach(id => {
+        const m = state.maps.find(x => x.id === id);
+        if (!m) return;
+        const isActive = id === state.activeMapId;
+        const pill = document.createElement('div');
+        pill.className = `map-tab-pill shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer whitespace-nowrap border border-slate-200 dark:border-slate-700 hover:border-indigo-400 ${isActive ? 'active border-indigo-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200'}`;
+        pill.innerHTML = `<span class="truncate max-w-[120px]">${escapeHtml(m.title)}</span><button class="tab-close p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10" title="Close tab"><i data-lucide="x" class="w-3 h-3"></i></button>`;
+        pill.addEventListener('click', (e) => { if (e.target.closest('.tab-close')) { e.stopPropagation(); closeMapTab(id); } else { switchMap(id); } });
+        list.appendChild(pill);
+    });
+}
+
+function renderNodes() {
+    nodesLayer.innerHTML = '';
+    const map = getActiveMap();
+    if (!map) return;
+    const query = state.searchQuery.trim().toLowerCase();
+
+    map.nodes.forEach(node => {
+        const isSelected = state.selectedNodeIds.includes(node.id) || node.id === state.selectedNodeId;
+        const isRoot = !node.parentId;
+        const statusMeta = STATUS_BADGES[node.status] || STATUS_BADGES['Idea'];
+        const hasNotes = node.notes && node.notes.trim().length > 0;
+        const hasCode = node.code && node.code.trim().length > 0;
+        const hasImage = node.image && node.image.trim().length > 0;
+        const gitCount = (node.gitLogs || []).length;
+        const matchesSearch = !query || (node.title||'').toLowerCase().includes(query) || (node.notes||'').toLowerCase().includes(query) || (node.status||'').toLowerCase().includes(query);
+
+        const el = document.createElement('div');
+        el.dataset.id = node.id;
+        el.style.transform = `translate(${node.x}px, ${node.y}px)`;
+        el.style.borderLeftColor = node.color || '#6366f1';
+        el.className = `mind-node absolute top-0 left-0 w-64 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 border-l-4 p-3.5 shadow-lg cursor-pointer select-none transition-opacity duration-200 overflow-hidden ${
+            isSelected ? 'node-selected ring-2 ring-indigo-500/60 z-10' : 'hover:border-slate-300 dark:hover:border-slate-700'
+        } ${!matchesSearch ? 'opacity-25' : 'opacity-100'} ${isRoot ? 'ring-1 ring-indigo-500/30' : ''} ${node.locked ? 'node-locked' : ''}`;
+
+        el.innerHTML = `
+            <div class="flex items-center justify-between gap-2 mb-1.5 min-h-[20px] w-full">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${statusMeta.bg} min-w-0 shrink">
+                    <span class="shrink-0">${statusMeta.icon}</span><span class="truncate">${escapeHtml(node.status||'Idea')}</span>
+                </span>
+                <div class="flex items-center gap-1.5 text-slate-400 shrink-0">
+                    ${node.locked ? '<i data-lucide="lock" class="w-3.5 h-3.5 text-rose-500" title="Locked"></i>' : ''}
+                    ${hasNotes ? '<i data-lucide="file-text" class="w-3.5 h-3.5 text-sky-400" title="Notes"></i>' : ''}
+                    ${hasCode ? '<i data-lucide="code-2" class="w-3.5 h-3.5 text-emerald-400" title="Code"></i>' : ''}
+                    ${hasImage ? '<i data-lucide="image" class="w-3.5 h-3.5 text-amber-400" title="Image"></i>' : ''}
+                    ${gitCount > 0 ? `<span class="flex items-center gap-0.5 text-[10px] font-semibold text-indigo-400"><i data-lucide="git-commit" class="w-3 h-3"></i>${gitCount}</span>` : ''}
+                </div>
+            </div>
+            <div class="font-bold text-sm text-slate-800 dark:text-slate-100 leading-snug line-clamp-2 break-words">${escapeHtml(node.title || 'Untitled Node')}</div>
+            ${hasImage ? `<div class="mt-2 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-950 h-24"><img src="${escapeHtml(node.image)}" alt="thumb" class="w-full h-full object-cover" /></div>` : ''}
+            ${hasNotes && !hasImage ? `<p class="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">${escapeHtml((node.notes||'').replace(/[#*`>-]/g,'').trim())}</p>` : ''}
+            ${node.modifiedAt ? `<div class="mt-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-800 text-[9px] text-slate-400 dark:text-slate-500 font-mono truncate">${escapeHtml(node.modifiedAt)}</div>` : ''}
+        `;
+        el.addEventListener('pointerdown', (e) => handleNodePointerDown(e, node.id));
+        nodesLayer.appendChild(el);
+    });
+}
+
+function renderConnections() {
+    connectionsLayer.innerHTML = '';
+    const map = getActiveMap();
+    if (!map) return;
+    const nodeMap = new Map(map.nodes.map(n => [n.id, n]));
+    map.nodes.forEach(node => {
+        if (!node.parentId) return;
+        const parent = nodeMap.get(node.parentId);
+        if (!parent) return;
+        const pEl = nodesLayer.querySelector(`[data-id="${parent.id}"]`);
+        const cEl = nodesLayer.querySelector(`[data-id="${node.id}"]`);
+        const pH = pEl ? pEl.offsetHeight : 84;
+        const cH = cEl ? cEl.offsetHeight : 84;
+        const nodeWidth = 256;
+
+        let d;
+        if (map.layout === 'radial') {
+            const sx = parent.x + nodeWidth/2, sy = parent.y + pH/2;
+            const ex = node.x + nodeWidth/2, ey = node.y + cH/2;
+            const mx = (sx+ex)/2, my = (sy+ey)/2;
+            d = `M ${sx} ${sy} Q ${mx} ${my}, ${ex} ${ey}`;
+        } else {
+            const isRight = node.x >= parent.x;
+            const sx = isRight ? parent.x + nodeWidth : parent.x;
+            const sy = parent.y + pH/2;
+            const ex = isRight ? node.x : node.x + nodeWidth;
+            const ey = node.y + cH/2;
+            const dx = Math.abs(ex - sx) * 0.5;
+            d = `M ${sx} ${sy} C ${isRight ? sx+dx : sx-dx} ${sy}, ${isRight ? ex-dx : ex+dx} ${ey}, ${ex} ${ey}`;
+        }
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+        path.setAttribute('d', d);
+        path.setAttribute('fill','none');
+        path.setAttribute('stroke', node.color || '#6366f1');
+        path.setAttribute('stroke-width','2.5');
+        path.setAttribute('stroke-opacity','0.65');
+        path.setAttribute('class','connector-path');
+        connectionsLayer.appendChild(path);
+    });
+}
+
+function applyAutoLayout(mode, animate = true) {
+    const map = getActiveMap();
+    if (!map) return;
+    map.layout = mode;
+    updateLayoutButtonsUI(mode);
+    if (mode === 'freeform') { saveToLocalStorage(); return; }
+    if (animate) { canvasWorld.classList.add('layout-animating'); setTimeout(() => canvasWorld.classList.remove('layout-animating'), 400); }
+    const nodes = map.nodes;
+    const root = nodes.find(n => !n.parentId) || nodes[0];
+    if (!root) return;
+
+    const childrenMap = {};
+    nodes.forEach(n => childrenMap[n.id] = []);
+    nodes.forEach(n => { if (n.parentId && childrenMap[n.parentId]) childrenMap[n.parentId].push(n); });
+
+    if (mode === 'tree') {
+        let cursorY = 100;
+        function layoutTree(node, depth) {
+            if (node.locked) return;
+            const kids = childrenMap[node.id] || [];
+            node.x = 100 + depth * 330;
+            if (kids.length === 0) { node.y = cursorY; cursorY += 135; }
+            else {
+                kids.forEach(k => layoutTree(k, depth + 1));
+                const unlockedKids = kids.filter(k => !k.locked);
+                if (unlockedKids.length > 0) node.y = (unlockedKids[0].y + unlockedKids[unlockedKids.length-1].y) / 2;
+            }
+        }
+        layoutTree(root, 0);
+    } else if (mode === 'radial') {
+        const cx = 600, cy = 450, nodeWidth = 256, nodeHeight = 84;
+        if (!root.locked) { root.x = cx - nodeWidth / 2; root.y = cy - nodeHeight / 2; }
+        const countLeaves = (n) => {
+            const kids = (childrenMap[n.id] || []).filter(k => !k.locked);
+            return kids.length === 0 ? 1 : kids.reduce((s,k) => s + countLeaves(k), 0);
+        };
+        function layoutRadial(node, depth, a0, a1) {
+            if (node.locked) return;
+            const kids = (childrenMap[node.id] || []).filter(k => !k.locked);
+            if (kids.length === 0) return;
+            const radius = depth * 320;
+            const total = kids.reduce((s,k) => s + countLeaves(k), 0);
+            let cursor = a0;
+            kids.forEach(kid => {
+                const sweep = (a1 - a0) * (countLeaves(kid) / total);
+                const mid = cursor + sweep / 2;
+                kid.x = cx + Math.cos(mid) * radius - nodeWidth / 2;
+                kid.y = cy + Math.sin(mid) * radius - nodeHeight / 2;
+                layoutRadial(kid, depth + 1, cursor, cursor + sweep);
+                cursor += sweep;
+            });
+        }
+        layoutRadial(root, 1, 0, Math.PI * 2);
+    }
+    renderAll();
+    saveToLocalStorage();
+}
+
+function updateLayoutButtonsUI(activeMode) {
+    document.querySelectorAll('.layout-btn').forEach(btn => {
+        const isMatch = btn.dataset.layout === activeMode;
+        if (isMatch) btn.className = 'layout-btn px-2.5 py-1 rounded-lg bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400 flex items-center gap-1 transition font-semibold';
+        else btn.className = 'layout-btn px-2.5 py-1 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 transition';
+    });
+}
+
+function updateWorldTransform() {
+    const { x, y, scale } = state.viewport;
+    canvasWorld.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+}
+
+function handleNodePointerDown(e, nodeId) {
+    e.stopPropagation();
+    if (state.activeTool === 'pan') return;
+
+    if (e.shiftKey) {
+        if (state.selectedNodeIds.includes(nodeId)) state.selectedNodeIds = state.selectedNodeIds.filter(id => id !== nodeId);
+        else state.selectedNodeIds.push(nodeId);
+        state.selectedNodeId = nodeId;
+        renderNodes();
+        return;
+    }
+
+    if (!state.selectedNodeIds.includes(nodeId)) state.selectedNodeIds = [nodeId];
+    state.selectedNodeId = nodeId;
+    
+    const map = getActiveMap();
+    const node = map.nodes.find(n => n.id === nodeId);
+    if (!node) return;
+
+    if (node.locked) { showToast('Node is locked. Unlock to drag.', 'error'); renderAll(); return; }
+
+    state.draggedNodeId = nodeId;
+    state.hasDraggedMoved = false;
+    state.dragOffset = {
+        x: (e.clientX - state.viewport.x) / state.viewport.scale - node.x,
+        y: (e.clientY - state.viewport.y) / state.viewport.scale - node.y
+    };
+    renderAll();
+}
+
+function bindEvents() {
+    // Canvas Events
+    canvasViewport.addEventListener('pointerdown', (e) => {
+        if (e.target.closest('.mind-node') || e.target.closest('button')) return;
+        
+        // We no longer have explicit pan/pointer tools, so default to drag pan if not clicking node.
+        state.isPanning = true;
+        state.panStart = { x: e.clientX - state.viewport.x, y: e.clientY - state.viewport.y };
+        canvasViewport.style.cursor = 'grabbing';
+        
+        // If they click blank space, deselect
+        if (!e.shiftKey) {
+            state.selectedNodeIds = [];
+            state.selectedNodeId = null;
+            renderNodes();
+            closeInspector();
+        }
+    });
+
+    window.addEventListener('pointermove', (e) => {
+        if (state.draggedNodeId) {
+            state.hasDraggedMoved = true;
+            const map = getActiveMap();
+            const node = map.nodes.find(n => n.id === state.draggedNodeId);
+            if (node && !node.locked) {
+                const newX = (e.clientX - state.viewport.x) / state.viewport.scale - state.dragOffset.x;
+                const newY = (e.clientY - state.viewport.y) / state.viewport.scale - state.dragOffset.y;
+                const dx = newX - node.x, dy = newY - node.y;
+                map.nodes.forEach(n => { if (state.selectedNodeIds.includes(n.id) && !n.locked) { n.x += dx; n.y += dy; } });
+                if (map.layout !== 'freeform') { map.layout = 'freeform'; updateLayoutButtonsUI('freeform'); }
+                renderNodes();
+                requestAnimationFrame(() => renderConnections());
+            }
+        } else if (state.isPanning) {
+            state.viewport.x = e.clientX - state.panStart.x;
+            state.viewport.y = e.clientY - state.panStart.y;
+            updateWorldTransform();
+        }
+    });
+
+    window.addEventListener('pointerup', () => {
+        if (state.draggedNodeId) {
+            const map = getActiveMap();
+            const n = map.nodes.find(x => x.id === state.draggedNodeId);
+            if (n) { n.modifiedAt = nowFormatted(); touchActiveMap(); }
+            if (!state.hasDraggedMoved && state.selectedNodeIds.length === 1) openInspector(state.draggedNodeId);
+            else saveToLocalStorage();
+            state.draggedNodeId = null;
+        }
+        if (state.isPanning) { state.isPanning = false; canvasViewport.style.cursor = 'grab'; }
+    });
+
+    // Dock Actions
+    $('toolLock').addEventListener('click', () => {
+        if (state.selectedNodeIds.length === 0) { showToast('Select nodes first', 'error'); return; }
+        const map = getActiveMap();
+        const allLocked = state.selectedNodeIds.every(id => map.nodes.find(n => n.id === id)?.locked);
+        const newLockState = !allLocked;
+        state.selectedNodeIds.forEach(id => { const n = map.nodes.find(n => n.id === id); if (n) n.locked = newLockState; });
+        saveToLocalStorage(); renderAll();
+        showToast(newLockState ? 'Nodes Locked' : 'Nodes Unlocked', 'success');
+    });
+
+    $('toolDelete').addEventListener('click', () => {
+        if (state.selectedNodeIds.length === 0) { showToast('Select nodes first', 'error'); return; }
+        if (!confirm(`Delete ${state.selectedNodeIds.length} node(s)?`)) return;
+        state.selectedNodeIds.forEach(id => {
+            const map = getActiveMap();
+            const target = map.nodes.find(n => n.id === id);
+            if (target && target.parentId) {
+                const toDelete = new Set([id]); let added = true;
+                while (added) { added = false; map.nodes.forEach(n => { if (n.parentId && toDelete.has(n.parentId) && !toDelete.has(n.id)) { toDelete.add(n.id); added = true; } }); }
+                const deletedNodes = map.nodes.filter(n => toDelete.has(n.id));
+                state.trash.unshift({ trashId: 'tr_' + Date.now(), itemType: 'NODE', mapId: map.id, mapTitle: map.title, deletedAt: nowFormatted(), data: JSON.parse(JSON.stringify(target)), subtree: JSON.parse(JSON.stringify(deletedNodes)) });
+                map.nodes = map.nodes.filter(n => !toDelete.has(n.id));
+            }
+        });
+        state.selectedNodeIds = []; state.selectedNodeId = null; closeInspector();
+        renderAll(); saveToLocalStorage(); updateTrashBadge(); showToast('Nodes moved to Bin', 'info');
+    });
+
+    $('addChildQuickBtn').addEventListener('click', () => addChildNode(state.selectedNodeId || getActiveMap().nodes[0].id));
+    $('addSiblingQuickBtn').addEventListener('click', () => {
+        const node = getSelectedNode();
+        if (!node) return;
+        if (!node.parentId) addChildNode(node.id);
+        else addChildNode(node.parentId);
+    });
+
+    // Zoom
+    $('zoomInBtn').addEventListener('click', () => { state.viewport.scale = Math.min(2.2, state.viewport.scale + 0.15); updateWorldTransform(); });
+    $('zoomOutBtn').addEventListener('click', () => { state.viewport.scale = Math.max(0.35, state.viewport.scale - 0.15); updateWorldTransform(); });
+    $('centerViewBtn').addEventListener('click', () => { state.viewport = { x: 40, y: 40, scale: 1 }; updateWorldTransform(); });
+
+    // Map Management
+    $('headerNewMapBtn').addEventListener('click', () => createNewMap());
+    $('headerDeleteMapBtn').addEventListener('click', () => deleteCurrentMap());
+    $('headerRestoreBtn').addEventListener('click', () => { openMapManager(); });
+    $('openMapManagerBtn').addEventListener('click', () => { openMapManager(); });
+    $('openSyncModalBtn').addEventListener('click', () => showModal('syncModal'));
+    $('openSettingsBtn').addEventListener('click', () => showModal('settingsModal'));
+    $('userProfileBtn').addEventListener('click', () => {
+        if (state.user) { if (confirm(`Logged in as ${state.user.email}. Logout?`)) AppAuth.logout(); }
+        else { $('welcomeScreen').style.display = 'flex'; $('welcomeScreen').style.opacity = '1'; $('appContainer').classList.add('hidden'); }
+    });
+
+    // Search
+    $('searchNodesInput').addEventListener('input', (e) => {
+        state.searchQuery = e.target.value;
+        renderNodes();
+    });
+
+    // Layouts
+    document.querySelectorAll('.layout-btn').forEach(btn => {
+        btn.addEventListener('click', () => applyAutoLayout(btn.dataset.layout, true));
+    });
+
+    // Modals
+    $('closeSyncModalBtn').addEventListener('click', () => hideModal('syncModal'));
+    $('closeMapManagerBtn').addEventListener('click', () => hideModal('mapManagerModal'));
+    $('closeSettingsBtn').addEventListener('click', () => hideModal('settingsModal'));
+    $('doneSettingsBtn').addEventListener('click', () => hideModal('settingsModal'));
+    $('closeDefaultColorsBtn').addEventListener('click', () => hideModal('defaultColorsModal'));
+    $('doneDefaultColorsBtn').addEventListener('click', () => hideModal('defaultColorsModal'));
+    $('openHelpBtn').addEventListener('click', () => showModal('helpModal'));
+    $('closeHelpModalBtn').addEventListener('click', () => hideModal('helpModal'));
+    
+    // Settings toggles
+    $('autoSaveCloudToggle').addEventListener('change', (e) => { state.autoSaveCloud = e.target.checked; saveToLocalStorage(); });
+    $('themeToggleSetting').addEventListener('change', toggleTheme);
+    $('themeToggleBtn').addEventListener('click', toggleTheme);
+    $('resetDefaultColorsBtn').addEventListener('click', () => { state.statusColors = { ...DEFAULT_STATUS_COLORS }; saveToLocalStorage(); openDefaultColors(); });
+    
+    // Inspector
+    $('closeInspectorBtn').addEventListener('click', closeInspector);
+    $('panelAddChildBtn').addEventListener('click', () => addChildNode(state.selectedNodeId));
+    $('panelDeleteNodeBtn').addEventListener('click', () => { state.selectedNodeIds = [state.selectedNodeId]; $('toolDelete').click(); });
+    $('panelLockBtn').addEventListener('click', () => { const n = getSelectedNode(); if (!n) return; n.locked = !n.locked; saveToLocalStorage(); renderAll(); openInspector(n.id); showToast(n.locked ? 'Node Locked' : 'Node Unlocked', 'success'); });
+    $('nodeTitleInput').addEventListener('input', (e) => updateSelectedNode('title', e.target.value));
+    $('nodeStatusSelect').addEventListener('change', (e) => updateSelectedNode('status', e.target.value));
+    
+    // Inspector Tabs
+    document.querySelectorAll('.inspector-tab').forEach(tabBtn => {
+        tabBtn.addEventListener('click', () => {
+            const target = tabBtn.dataset.tab;
+            document.querySelectorAll('.inspector-tab').forEach(b => b.className = 'inspector-tab flex-1 py-1.5 px-1 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center justify-center gap-1');
+            tabBtn.className = 'inspector-tab flex-1 py-1.5 px-1 rounded-lg text-xs font-semibold bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm flex items-center justify-center gap-1';
+            document.querySelectorAll('.tab-content').forEach(p => p.classList.add('hidden'));
+            $(`tab-${target}`).classList.remove('hidden');
+        });
+    });
+
+    // Notes
+    $('nodeNotesInput').addEventListener('input', (e) => { updateSelectedNode('notes', e.target.value); updateMarkdownPreview(); });
+    $('toggleMarkdownPreviewBtn').addEventListener('click', () => {
+        state.isMarkdownPreview = !state.isMarkdownPreview;
+        $('nodeNotesInput').classList.toggle('hidden', state.isMarkdownPreview);
+        $('nodeNotesPreview').classList.toggle('hidden', !state.isMarkdownPreview);
+        $('mdPreviewLabel').textContent = state.isMarkdownPreview ? 'Edit' : 'Preview';
+        updateMarkdownPreview();
+    });
+
+    // Code
+    $('nodeCodeInput').addEventListener('input', (e) => { updateSelectedNode('code', e.target.value); updateCodePreview(); });
+    $('nodeCodeLangSelect').addEventListener('change', (e) => { updateSelectedNode('codeLang', e.target.value); updateCodePreview(); });
+    $('copyCodeSnippetBtn').addEventListener('click', () => { $('nodeCodeInput').select(); document.execCommand('copy'); showToast('Code copied', 'success'); });
+
+    // Media
+    $('nodeImageUrlInput').addEventListener('input', (e) => { updateSelectedNode('image', e.target.value); updateImagePreview(e.target.value); });
+    $('nodeImageFileInput').addEventListener('change', (e) => { if (e.target.files[0]) compressAndAttachImage(e.target.files[0]); });
+    $('clearImageBtn').addEventListener('click', () => { updateSelectedNode('image', ''); $('nodeImageUrlInput').value = ''; updateImagePreview(''); });
+
+    // Git
+    $('addGitCommitBtn').addEventListener('click', addGitCommit);
+    $('gitCommitMsg').addEventListener('keydown', (e) => { if (e.key === 'Enter') addGitCommit(); });
+
+    // Cloud buttons
+    $('exportJsonBtn').addEventListener('click', exportMindMapJson);
+    $('importJsonInput').addEventListener('change', (e) => { if (e.target.files[0]) importMindMapJson(e.target.files[0]); });
+}
+
+function toggleTheme() {
+    const isDark = document.documentElement.classList.toggle('dark');
+    canvasViewport.classList.toggle('canvas-grid-dark', isDark);
+    canvasViewport.classList.toggle('canvas-grid-light', !isDark);
+    state.isDark = isDark;
+    $('themeToggleSetting').checked = isDark;
+    saveToLocalStorage();
+}
+
+function getSelectedNode() { const map = getActiveMap(); return map ? map.nodes.find(n => n.id === state.selectedNodeId) : null; }
+
+function openInspector(nodeId) {
+    state.selectedNodeId = nodeId;
+    const node = getSelectedNode();
+    if (!node) return;
+    $('nodeTitleInput').value = node.title || '';
+    $('nodeStatusSelect').value = node.status || 'Idea';
+    $('inspectorColorDot').style.backgroundColor = node.color || '#6366f1';
+    $('nodeCreatedAt').textContent = node.createdAt || '--';
+    $('nodeModifiedAt').textContent = node.modifiedAt || '--';
+    $('panelLockBtn').innerHTML = node.locked ? '<i data-lucide="unlock" class="w-4 h-4"></i> Unlock' : '<i data-lucide="lock" class="w-4 h-4"></i> Lock';
+    inspectorPanel.classList.remove('translate-x-[110%]');
+    renderAll();
+}
+
+function closeInspector() { inspectorPanel.classList.add('translate-x-[110%]'); }
+
+function updateSelectedNode(field, value) {
+    const node = getSelectedNode();
+    if (!node) return;
+    node[field] = value;
+    if (field !== 'x' && field !== 'y') { node.modifiedAt = nowFormatted(); touchActiveMap(); }
+    if (field === 'status' && state.statusColors[value]) node.color = state.statusColors[value];
+    saveToLocalStorage();
+    renderAll();
+}
+
+function addChildNode(parentId) {
+    const map = getActiveMap();
+    if (!map) return;
+    const parent = map.nodes.find(n => n.id === parentId) || map.nodes[0];
+    if (!parent) return;
+    const now = nowFormatted();
+    const newId = 'node_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+    const newNode = { id: newId, parentId: parent.id, title: 'New Idea', status: 'Idea', color: state.statusColors['Idea'] || '#eab308', x: parent.x + 320, y: parent.y + 50, locked: false, createdAt: now, modifiedAt: now, notes: '', codeLang: 'JavaScript', code: '', image: '', gitLogs: [] };
+    map.nodes.push(newNode);
+    state.selectedNodeId = newId; state.selectedNodeIds = [newId];
+    if (map.layout !== 'freeform') applyAutoLayout(map.layout, true);
+    else { renderAll(); saveToLocalStorage(); }
+    openInspector(newId);
+}
+
+function createNewMap() {
+    const title = prompt('Enter New Map Name:', `Project Flow ${state.maps.length + 1}`);
+    if (!title || !title.trim()) return;
+    const now = nowFormatted();
+    const mapId = 'map_' + Date.now();
+    const newMap = { id: mapId, title: title.trim(), layout: 'tree', createdAt: now, modifiedAt: now, nodes: [{ id: 'node_'+Date.now(), parentId: null, title: title.trim(), status: 'Idea', color: '#eab308', x: 220, y: 180, locked: false, createdAt: now, modifiedAt: now, notes: '', codeLang: 'JavaScript', code: '', image: '', gitLogs: [] }] };
+    state.maps.push(newMap); state.openTabIds.push(mapId); state.activeMapId = mapId;
+    state.selectedNodeId = newMap.nodes[0].id; state.selectedNodeIds = [state.selectedNodeId];
+    closeInspector(); saveToLocalStorage(); renderAll();
+}
+
+function switchMap(mapId) {
+    state.activeMapId = mapId;
+    state.selectedNodeId = getActiveMap().nodes[0]?.id || null;
+    state.selectedNodeIds = state.selectedNodeId ? [state.selectedNodeId] : [];
+    closeInspector(); renderAll();
+}
+
+function closeMapTab(mapId) {
+    if (state.openTabIds.length <= 1) return;
+    state.openTabIds = state.openTabIds.filter(id => id !== mapId);
+    if (state.activeMapId === mapId) state.activeMapId = state.openTabIds[0];
+    renderAll();
+}
+
+function deleteCurrentMap() {
+    if (state.maps.length <= 1) { showToast('Cannot delete last map', 'error'); return; }
+    if (!confirm('Delete current map?')) return;
+    state.maps = state.maps.filter(m => m.id !== state.activeMapId);
+    state.openTabIds = state.openTabIds.filter(id => id !== state.activeMapId);
+    state.activeMapId = state.openTabIds[0];
+    renderAll(); saveToLocalStorage();
+}
+
+function openMapManager() {
+    const list = $('mapManagerList'); list.innerHTML = '';
+    state.maps.forEach(m => {
+        const row = document.createElement('div');
+        row.className = `p-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 border ${m.id === state.activeMapId ? 'border-indigo-500' : 'border-slate-200 dark:border-slate-700'}`;
+        row.innerHTML = `<div class="flex justify-between items-center"><div><strong class="text-sm">${escapeHtml(m.title)}</strong><div class="text-[10px] text-slate-400">${m.nodes.length} nodes</div></div><button onclick="switchMap('${m.id}'); hideModal('mapManagerModal')" class="px-2 py-1 rounded bg-indigo-600 text-white text-[10px]">Open</button></div>`;
+        list.appendChild(row);
+    });
+    const rlist = $('restoreList'); rlist.innerHTML = '';
+    state.trash.forEach(item => {
+        const row = document.createElement('div');
+        row.className = `p-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex justify-between items-center`;
+        row.innerHTML = `<div class="text-xs font-semibold">${escapeHtml(item.data.title)}</div><button onclick="restoreTrash('${item.trashId}')" class="px-2 py-1 rounded bg-emerald-600 text-white text-[10px]">Restore</button>`;
+        rlist.appendChild(row);
+    });
+    showModal('mapManagerModal');
+}
+
+function restoreTrash(trashId) {
+    const idx = state.trash.findIndex(t => t.trashId === trashId);
+    if (idx === -1) return;
+    const item = state.trash[idx];
+    const targetMap = state.maps.find(m => m.id === item.mapId) || getActiveMap();
+    if (item.itemType === 'MAP') {
+        state.maps.push(item.data); state.openTabIds.push(item.data.id);
+    } else {
+        const subtree = item.subtree || [item.data];
+        subtree.forEach(n => { if (!targetMap.nodes.some(e => e.id === n.id)) targetMap.nodes.push(n); });
+    }
+    state.trash.splice(idx, 1);
+    saveToLocalStorage(); renderAll(); openMapManager(); updateTrashBadge();
+}
+
+function openDefaultColors() {
+    const form = $('defaultColorsForm'); form.innerHTML = '';
+    Object.keys(DEFAULT_STATUS_COLORS).forEach(status => {
+        const cur = state.statusColors[status] || DEFAULT_STATUS_COLORS[status];
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between p-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700';
+        row.innerHTML = `<strong class="text-sm">${status}</strong><input type="color" value="${cur}" data-status="${status}" class="w-10 h-7 rounded cursor-pointer" />`;
+        row.querySelector('input').addEventListener('input', (e) => { state.statusColors[status] = e.target.value; saveToLocalStorage(); });
+        form.appendChild(row);
+    });
+    showModal('defaultColorsModal');
+}
+
+function updateMarkdownPreview() { const raw = $('nodeNotesInput').value || '*No notes added yet.*'; if (window.marked) $('nodeNotesPreview').innerHTML = marked.parse(raw); }
+function updateCodePreview() { const code = $('nodeCodeInput').value || '// No code'; const lang = $('nodeCodeLangSelect').value || 'JavaScript'; const el = $('nodeCodePreview'); el.className = `language-${lang.toLowerCase()}`; el.textContent = code; if (window.hljs) { delete el.dataset.highlighted; hljs.highlightElement(el); } }
+function updateImagePreview(src) { const box = $('nodeImagePreviewContainer'); const img = $('nodeImagePreview'); if (src && src.trim()) { img.src = src.trim(); box.classList.remove('hidden'); } else { img.src = ''; box.classList.add('hidden'); } }
+
+function addGitCommit() {
+    const node = getSelectedNode(); if (!node) return;
+    const msg = $('gitCommitMsg').value.trim(); if (!msg) return;
+    if (!node.gitLogs) node.gitLogs = [];
+    node.gitLogs.unshift({ type: $('gitCommitType').value, msg, time: nowFormatted() });
+    node.modifiedAt = nowFormatted(); $('gitCommitMsg').value = '';
+    saveToLocalStorage(); renderAll(); showToast('Commit added', 'success');
+}
+
+function compressAndAttachImage(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas'); const MAX = 800;
+            let w = img.width, h = img.height;
+            if (w > MAX || h > MAX) { if (w > h) { h = Math.round(h * MAX / w); w = MAX; } else { w = Math.round(w * MAX / h); h = MAX; } }
+            canvas.width = w; canvas.height = h; canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
+            const node = getSelectedNode();
+            if (node) { node.image = dataUrl; updateImagePreview(dataUrl); saveToLocalStorage(); renderAll(); showToast('Image attached', 'success'); }
+        };
+        img.src = ev.target.result;
+    };
+    reader.readAsText(file);
+}
+
+function showModal(id) { const m = $(id); m.classList.remove('hidden'); m.classList.add('flex'); }
+function hideModal(id) { const m = $(id); m.classList.add('hidden'); m.classList.remove('flex'); }
+
+async function pushToFirestore(silent = false) {
+    if (!state.user || !isFirebaseReady) return;
+    try {
+        await firebaseDb.collection('mindmaps').doc(state.user.uid).set({ state: { maps: state.maps, activeMapId: state.activeMapId, openTabIds: state.openTabIds, statusColors: state.statusColors, languages: state.languages, trash: state.trash } });
+        if (!silent) showToast('Saved to Firestore', 'success');
+    } catch (err) { if (!silent) showToast('Firestore save failed', 'error'); }
+}
+
+function exportMindMapJson() {
+    const payload = { maps: state.maps, activeMapId: state.activeMapId, openTabIds: state.openTabIds, trash: state.trash, statusColors: state.statusColors, languages: state.languages };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `thinking-flow-${new Date().toISOString().slice(0,10)}.json`; a.click();
+    showToast('Exported backup', 'success');
+}
+
+function importMindMapJson(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const data = JSON.parse(e.target.result);
+            if (data.maps) { state.maps = data.maps; state.activeMapId = data.activeMapId; state.openTabIds = data.openTabIds; state.trash = data.trash || []; }
+            else if (data.nodes) { state.maps = [{ id: 'map_'+Date.now(), title: 'Imported', nodes: data.nodes }]; state.activeMapId = state.maps[0].id; state.openTabIds = [state.activeMapId]; }
+            saveToLocalStorage(); renderAll(); hideModal('syncModal'); showToast('Import successful', 'success');
+        } catch (err) { showToast('Invalid JSON', 'error'); }
+    };
+    reader.readAsText(file);
+}
+
+function initApp() {
+    const loaded = tryLoad();
+    if (loaded) Object.assign(state, loaded);
+    state.maps.forEach(m => m.nodes.forEach(n => { if (n.locked === undefined) n.locked = false; }));
+    if (!state.maps || !state.maps.length) {
+        const now = nowFormatted();
+        state.maps = [{ id: 'map_'+Date.now(), title: 'My First Map', layout: 'tree', createdAt: now, modifiedAt: now, nodes: [{ id: 'root_1', parentId: null, title: 'Start Here', status: 'Idea', color: '#eab308', x: 220, y: 180, locked: false, createdAt: now, modifiedAt: now, notes: '', codeLang: 'JavaScript', code: '', image: '', gitLogs: [] }] }];
+        state.activeMapId = state.maps[0].id; state.openTabIds = [state.activeMapId];
+        state.selectedNodeId = state.maps[0].nodes[0].id; state.selectedNodeIds = [state.selectedNodeId];
+    }
+    document.documentElement.classList.toggle('dark', state.isDark);
+    canvasViewport.classList.toggle('canvas-grid-dark', state.isDark);
+    canvasViewport.classList.toggle('canvas-grid-light', !state.isDark);
+    bindEvents(); renderAll(); updateWorldTransform(); updateTrashBadge();
+    if (window.lucide) lucide.createIcons();
+    
+    if (state.user && isFirebaseReady) {
+        firebaseDb.collection('mindmaps').doc(state.user.uid).get().then(doc => {
+            if (doc.exists && doc.data().state) {
+                if (confirm("Cloud backup found. Load it? (Cancel to keep local)")) {
+                    Object.assign(state, doc.data().state); renderAll();
+                }
+            }
+        }).catch(console.error);
+    }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    AppAuth.init();
+    if (!firebaseConfig.apiKey) setTimeout(() => AppAuth.enterApp(), 500);
+});
+</script>
+</body>
+</html>
