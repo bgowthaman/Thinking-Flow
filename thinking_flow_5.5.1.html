@@ -1,0 +1,2688 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thinking Flow • Modular Mind Map & Project Studio</title>
+
+    <!-- External Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans Tamil', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Tamil:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+	<!-- JSZip for Clean Project Bundle (.zip) Export/Import -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+	
+    <!-- Firebase SDKs (Compat v10 for zero-build browser usage) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+    <!-- Google Identity Services & GAPI for Google Drive -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js" async defer></script>
+
+    <!-- ================= MODULE 0: CSS STYLES ================= -->
+    <style>
+        body { overflow: hidden; user-select: none; -webkit-tap-highlight-color: transparent; }
+        .canvas-grid-light { background-color: #f8fafc; background-image: radial-gradient(#cbd5e1 1.25px, transparent 1.25px); background-size: 24px 24px; }
+        .canvas-grid-dark  { background-color: #090d16; background-image: radial-gradient(#1e293b 1.25px, transparent 1.25px); background-size: 24px 24px; }
+        
+        .layout-animating .mind-node { transition: transform .35s cubic-bezier(.22,1,.36,1); }
+        .layout-animating .connector-path { transition: d .35s cubic-bezier(.22,1,.36,1); }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(148,163,184,.3); border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,.5); }
+
+        .markdown-body h1 { font-size: 1.25rem; font-weight: 700; margin-bottom: .5rem; }
+        .markdown-body h2 { font-size: 1.1rem; font-weight: 600; margin-top: .75rem; margin-bottom: .4rem; }
+        .markdown-body p { margin-bottom: .5rem; line-height: 1.5; }
+        .markdown-body ul { list-style-type: disc; padding-left: 1.25rem; margin-bottom: .5rem; }
+        .markdown-body ol { list-style-type: decimal; padding-left: 1.25rem; margin-bottom: .5rem; }
+        .markdown-body code { background: rgba(148,163,184,.2); padding: .1rem .3rem; border-radius: .25rem; font-family: 'JetBrains Mono', monospace; font-size: .85em; }
+        .markdown-body blockquote { border-left: 3px solid #6366f1; padding-left: .75rem; opacity: .85; font-style: italic; }
+
+        .node-selected { box-shadow: 0 0 0 3px rgba(99,102,241,.55), 0 12px 28px -6px rgba(0,0,0,.35); z-index: 10; }
+        .node-locked { border-style: dashed !important; opacity: 0.9; }
+        .map-tab-pill { transition: all .15s ease; }
+        .map-tab-pill.active { background: rgb(99 102 241 / 1); color: white; box-shadow: 0 2px 8px rgba(99,102,241,.3); }
+
+        #selectionBox {
+            position: absolute; border: 2px dashed #6366f1; background: rgba(99,102,241,0.12);
+            pointer-events: none; display: none; z-index: 100; border-radius: 6px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-[#090d16] text-slate-800 dark:text-slate-100 font-sans antialiased h-screen w-screen flex flex-col">
+
+    <!-- ========== WELCOME SCREEN (AUTH MODULE) ========== -->
+    <div id="welcomeScreen" class="fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-center p-4 transition-opacity duration-300">
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-900/40 via-slate-950 to-slate-950"></div>
+        <div class="relative z-10 max-w-md w-full bg-slate-900/85 backdrop-blur-xl border border-slate-800 rounded-3xl p-8 shadow-2xl text-center space-y-6">
+            <div class="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
+                <i data-lucide="network" class="w-8 h-8"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold text-white mb-1.5">Thinking Flow</h1>
+                <p class="text-xs text-slate-400">Visual Mind Map, Code & Project Studio • சிந்தனை வரைபடம்</p>
+            </div>
+            <div class="space-y-3">
+                <button id="welcomeGoogleBtn" class="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl bg-white text-slate-900 font-semibold hover:bg-slate-100 transition shadow-lg text-sm">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                    <span>Sign in with Firebase Google</span>
+                </button>
+                <button id="welcomeOfflineBtn" class="w-full px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition text-sm shadow-lg">
+                    Continue Offline Workspace →
+                </button>
+            </div>
+            <p class="text-[11px] text-slate-500">Offline-first LocalStorage • Optional Firebase & Google Drive sync inside Cloud panel.</p>
+        </div>
+    </div>
+
+    <!-- ========== MAIN APPLICATION CONTAINER ========== -->
+    <div id="appContainer" class="flex-1 flex flex-col hidden h-full w-full relative">
+
+        <!-- TOP FLOATING HEADER TOOLBAR -->
+        <header class="fixed top-3 left-3 right-3 z-30 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+            <!-- Brand & Active Map Title -->
+            <div class="pointer-events-auto flex items-center gap-2.5 bg-white/90 dark:bg-slate-900/90 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3.5 py-2 rounded-2xl shadow-lg">
+                <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-inner">
+                    <i data-lucide="network" class="w-4 h-4"></i>
+                </div>
+                <div class="flex flex-col">
+                    <input id="mapTitleInput" type="text" value="Project Thinking Flow"
+                        class="bg-transparent font-bold text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-indigo-500/50 rounded px-1 -ml-1 w-36 sm:w-52 truncate"
+                        title="Rename active map / திட்டத்தின் பெயரை மாற்றவும்" />
+                    <span id="saveStatusBadge" class="text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <span>Auto-Saved • சேமிக்கப்பட்டது</span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Center Search & Layout Controls -->
+            <div class="pointer-events-auto hidden md:flex items-center gap-2 bg-white/90 dark:bg-slate-900/90 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-2xl shadow-lg">
+                <div class="relative flex items-center">
+                    <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-2.5"></i>
+                    <input id="searchNodesInput" type="text" placeholder="Search nodes / தேடுக..."
+                        class="pl-8 pr-7 py-1.5 text-xs bg-slate-100 dark:bg-slate-800/80 border border-transparent focus:border-indigo-500 rounded-xl focus:outline-none w-44 lg:w-56 transition-all" />
+                    <button id="clearSearchBtn" class="hidden absolute right-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+                <div class="h-5 w-[1px] bg-slate-200 dark:bg-slate-700 mx-1"></div>
+                <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-medium">
+                    <button data-layout="tree" class="layout-btn px-2.5 py-1 rounded-lg bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400 flex items-center gap-1 transition">
+                        <i data-lucide="git-fork" class="w-3.5 h-3.5"></i><span>Tree</span>
+                    </button>
+                    <button data-layout="radial" class="layout-btn px-2.5 py-1 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 transition">
+                        <i data-lucide="sun" class="w-3.5 h-3.5"></i><span>Radial</span>
+                    </button>
+                    <button data-layout="freeform" class="layout-btn px-2.5 py-1 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 transition">
+                        <i data-lucide="move" class="w-3.5 h-3.5"></i><span>Free</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Action Controls -->
+            <div class="pointer-events-auto flex items-center gap-1.5 sm:gap-2 bg-white/90 dark:bg-slate-900/90 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2.5 py-1.5 rounded-2xl shadow-lg">
+                <button id="openSyncModalBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition active:scale-95" title="Cloud Sync & Backup">
+                    <i data-lucide="cloud" class="w-3.5 h-3.5"></i><span class="hidden sm:inline">Cloud & Backup</span>
+                </button>
+
+                <div class="h-5 w-[1px] bg-slate-200 dark:bg-slate-700 mx-0.5"></div>
+
+                <button id="headerNewMapBtn" class="p-2 rounded-xl text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition" title="New Map / புதிய வரைபடம்">
+                    <i data-lucide="file-plus" class="w-4 h-4"></i>
+                </button>
+                <button id="headerDeleteMapBtn" class="p-2 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition" title="Delete Active Map / நீக்கு">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+                <button id="headerRestoreBtn" class="relative p-2 rounded-xl text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition" title="All Maps & Restore Bin / மீட்டெடு">
+                    <i data-lucide="history" class="w-4 h-4"></i>
+                    <span id="headerTrashBadge" class="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center hidden">0</span>
+                </button>
+
+                <div class="h-5 w-[1px] bg-slate-200 dark:bg-slate-700 mx-0.5"></div>
+
+                <button id="openMapManagerBtn" class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="All Maps">
+                    <i data-lucide="folder-open" class="w-4 h-4"></i>
+                </button>
+                <button id="resetSampleBtn" class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Load Sample Project">
+                    <i data-lucide="sparkles" class="w-4 h-4"></i>
+                </button>
+                <button id="openHelpBtn" class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Shortcuts & Guide">
+                    <i data-lucide="help-circle" class="w-4 h-4"></i>
+                </button>
+                <button id="themeToggleBtn" class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Toggle Theme">
+                    <i data-lucide="sun" class="w-4 h-4 hidden dark:block text-amber-400"></i>
+                    <i data-lucide="moon" class="w-4 h-4 block dark:hidden text-indigo-600"></i>
+                </button>
+                <button id="userProfileBtn" class="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Account">
+                    <img id="userAvatar" src="" class="w-5 h-5 rounded-md hidden object-cover">
+                    <i id="userIcon" data-lucide="user" class="w-4 h-4 text-slate-500"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- MAP TABS BAR -->
+        <div class="fixed top-[4.75rem] left-3 right-3 z-25 pointer-events-none">
+            <div class="pointer-events-auto flex items-center gap-1.5 bg-white/90 dark:bg-slate-900/90 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2 py-1.5 rounded-xl shadow-lg overflow-x-auto">
+                <div id="mapTabsList" class="flex items-center gap-1.5 flex-1 min-w-0 overflow-x-auto"></div>
+                <button id="newMapBtn" class="shrink-0 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1 transition active:scale-95" title="New Map">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i><span class="hidden sm:inline">New Map</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Search & Layout Bar -->
+        <div class="md:hidden fixed top-[8.25rem] left-3 right-3 z-20 flex items-center justify-between gap-2 bg-white/90 dark:bg-slate-900/90 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-xl shadow">
+            <input id="mobileSearchInput" type="text" placeholder="Search / தேடுக..." class="bg-slate-100 dark:bg-slate-800 text-xs px-2.5 py-1.5 rounded-lg w-1/2 focus:outline-none">
+            <div class="flex items-center gap-1 text-[11px]">
+                <button data-layout="tree" class="layout-btn px-2 py-1 rounded bg-indigo-600 text-white">Tree</button>
+                <button data-layout="radial" class="layout-btn px-2 py-1 rounded bg-slate-200 dark:bg-slate-800">Radial</button>
+                <button data-layout="freeform" class="layout-btn px-2 py-1 rounded bg-slate-200 dark:bg-slate-800">Free</button>
+            </div>
+        </div>
+
+        <!-- MAIN INTERACTIVE CANVAS -->
+        <main id="canvasViewport" class="relative flex-1 w-full h-full overflow-hidden canvas-grid-dark cursor-grab active:cursor-grabbing">
+
+            <!-- புதியது (will-change-transform நீக்கப்பட்டது): -->
+				<div id="canvasWorld" class="absolute top-0 left-0 origin-top-left" style="transform: translate(0px,0px) scale(1);">
+                <svg id="connectionsLayer" class="absolute top-0 left-0 overflow-visible pointer-events-none" width="1" height="1"></svg>
+                <div id="nodesLayer" class="relative"></div>
+            </div>
+            <div id="selectionBox"></div>
+
+            <!-- Bottom Floating Action, Multi-Select & Zoom Dock -->
+            <div class="fixed bottom-4 left-4 z-20 flex flex-wrap items-center gap-1.5 bg-white/90 dark:bg-slate-900/90 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1.5 rounded-2xl shadow-xl">
+                <button id="addChildQuickBtn" class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition active:scale-95" title="Add Child (Tab)">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i><span>+ Child <span class="opacity-75 hidden sm:inline">(Tab)</span></span>
+                </button>
+                <button id="addSiblingQuickBtn" class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition active:scale-95" title="Add Sibling (Enter)">
+                    <i data-lucide="git-commit" class="w-4 h-4"></i><span>+ Sibling <span class="opacity-75 hidden sm:inline">(Enter)</span></span>
+                </button>
+                <button id="toolSelectModeBtn" class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Toggle Box Multi-Select Mode (or Shift+Drag)">
+                    <i data-lucide="box-select" class="w-4 h-4"></i>
+                </button>
+                <button id="toolLockBtn" class="p-2 rounded-xl text-amber-500 hover:bg-amber-500/10 transition active:scale-95" title="Lock/Unlock Selected Nodes">
+                    <i data-lucide="lock" class="w-4 h-4"></i>
+                </button>
+                <button id="deleteNodeQuickBtn" class="p-2 rounded-xl text-rose-500 hover:bg-rose-500/10 transition active:scale-95" title="Move Selected to Bin (Del)">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+
+                <div class="h-5 w-[1px] bg-slate-200 dark:bg-slate-700 mx-0.5"></div>
+
+                <button id="zoomOutBtn" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300" title="Zoom Out"><i data-lucide="zoom-out" class="w-4 h-4"></i></button>
+                <span id="zoomLevelLabel" class="text-xs font-mono font-medium w-11 text-center">100%</span>
+                <button id="zoomInBtn" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300" title="Zoom In"><i data-lucide="zoom-in" class="w-4 h-4"></i></button>
+                <button id="centerViewBtn" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-indigo-500" title="Center Map"><i data-lucide="crosshair" class="w-4 h-4"></i></button>
+            </div>
+        </main>
+
+        <!-- RICH NODE INSPECTOR SIDE-PANEL -->
+        <aside id="nodeInspectorPanel" class="fixed top-3 bottom-3 right-3 w-[calc(100%-1.5rem)] sm:w-[440px] z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl flex flex-col transform translate-x-[110%] transition-transform duration-300 ease-out">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800">
+                <div class="flex items-center gap-2">
+                    <span id="inspectorColorDot" class="w-3.5 h-3.5 rounded-full bg-indigo-500 shadow"></span>
+                    <h2 class="font-bold text-sm tracking-wide uppercase text-slate-500 dark:text-slate-400">Node Details</h2>
+                </div>
+                <div class="flex items-center gap-1">
+                    <button id="panelLockBtn" class="p-1.5 rounded-lg text-amber-500 hover:bg-amber-500/10 text-xs font-medium flex items-center gap-1" title="Lock/Unlock Node">
+                        <i data-lucide="lock" class="w-4 h-4"></i><span>Lock</span>
+                    </button>
+                    <button id="panelAddChildBtn" class="p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 text-xs font-medium flex items-center gap-1" title="Add Sub-node">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Sub-node
+                    </button>
+                    <button id="closeInspectorBtn" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Timestamps Bar -->
+            <div class="grid grid-cols-2 gap-2 px-4 py-2 border-b border-slate-200 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-950/50">
+                <div class="flex items-center gap-1.5"><i data-lucide="calendar-plus" class="w-3 h-3"></i><span>Created: <strong id="nodeCreatedAt">--</strong></span></div>
+                <div class="flex items-center gap-1.5"><i data-lucide="calendar-clock" class="w-3 h-3"></i><span>Modified: <strong id="nodeModifiedAt">--</strong></span></div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-5 space-y-5 select-text">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Node Title / தலைப்பு</label>
+                    <input id="nodeTitleInput" type="text" placeholder="Enter node title..."
+                        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 focus:border-indigo-500 focus:outline-none font-semibold text-base" />
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Status / நிலை</label>
+                        <select id="nodeStatusSelect" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-xs font-medium focus:border-indigo-500 focus:outline-none">
+                            <option value="Idea">💡 Idea</option>
+                            <option value="In Progress">⚡ In Progress</option>
+                            <option value="Done">✅ Done</option>
+                            <option value="Hardware">🔧 Hardware</option>
+                            <option value="Code">💻 Code</option>
+                            <option value="Research">🔬 Research</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Branch Color / நிறம்</label>
+                        <div id="colorPalettePicker" class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/90 px-2 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 overflow-x-auto"></div>
+                    </div>
+                </div>
+
+                <!-- Content Tabs -->
+                <div>
+                    <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-3">
+                        <button data-tab="notes" class="inspector-tab flex-1 py-1.5 px-1 rounded-lg text-xs font-semibold bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm flex items-center justify-center gap-1">
+                            <i data-lucide="file-text" class="w-3.5 h-3.5"></i><span>Notes</span>
+                        </button>
+                        <button data-tab="code" class="inspector-tab flex-1 py-1.5 px-1 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center justify-center gap-1">
+                            <i data-lucide="code-2" class="w-3.5 h-3.5"></i><span>Code</span>
+                        </button>
+                        <button data-tab="media" class="inspector-tab flex-1 py-1.5 px-1 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center justify-center gap-1">
+                            <i data-lucide="image" class="w-3.5 h-3.5"></i><span>Media</span>
+                        </button>
+                        <button data-tab="git" class="inspector-tab flex-1 py-1.5 px-1 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center justify-center gap-1">
+                            <i data-lucide="git-commit" class="w-3.5 h-3.5"></i><span>Git</span>
+                        </button>
+                    </div>
+
+                    <!-- TAB 1: Notes -->
+                    <div id="tab-notes" class="tab-content space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-slate-500 dark:text-slate-400">Markdown supported</span>
+                            <button id="toggleMarkdownPreviewBtn" class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+                                <i data-lucide="eye" class="w-3.5 h-3.5"></i><span id="mdPreviewLabel">Preview</span>
+                            </button>
+                        </div>
+						
+                        <textarea id="nodeNotesInput" rows="8" placeholder="Write project thoughts, architecture steps, or bilingual notes here..."
+                            class="w-full p-3 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 focus:border-indigo-500 focus:outline-none text-sm leading-relaxed resize-y"></textarea>
+                        <div id="nodeNotesPreview" class="hidden markdown-body p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-sm min-h-[180px]"></div>
+						
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200 dark:border-slate-800">
+                            <button id="exportZipBtn" class="flex flex-col items-center justify-center gap-1.5 p-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white transition shadow">
+                                <i data-lucide="archive" class="w-6 h-6"></i>
+                                <span class="font-bold text-xs">Export Project Bundle (.ZIP)</span>
+                                <span class="text-[10px] opacity-80">project.json + assets/ + code/</span>
+                            </button>
+                            <label class="flex flex-col items-center justify-center gap-1.5 p-4 rounded-2xl border-2 border-dashed border-indigo-500/50 hover:bg-indigo-500/10 transition cursor-pointer">
+                                <i data-lucide="folder-up" class="w-6 h-6 text-indigo-500"></i>
+                                <span class="font-bold text-xs">Import Project Bundle (.ZIP)</span>
+                                <span class="text-[10px] text-slate-400">Restore full images & code files</span>
+                                <input id="importZipInput" type="file" accept=".zip,application/zip" class="hidden" />
+                            </label>
+                        </div>
+					</div>
+
+<!-- TAB 2: Multi-File Code -->
+                    <div id="tab-code" class="tab-content hidden space-y-2.5">
+                        <div class="flex items-center gap-1.5 overflow-x-auto pb-1">
+                            <div id="codeFilesTabBar" class="flex items-center gap-1 flex-1 overflow-x-auto"></div>
+                            <button id="addCodeFileBtn" class="shrink-0 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold">+ File</button>
+                        </div>
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex-1 flex gap-1.5">
+                                <input id="nodeCodeFileNameInput" type="text" placeholder="main.py" class="w-28 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono" />
+                                <select id="nodeCodeLangSelect" class="flex-1 px-2 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono"></select>
+                                <button id="addLanguageBtn" class="px-2 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold" title="Add custom language">+</button>
+                            </div>
+                            <button id="copyCodeSnippetBtn" class="px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium">Copy</button>
+                            <button id="deleteCodeFileBtn" class="p-1.5 rounded-lg text-rose-500 hover:bg-rose-500/10" title="Remove File"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                        </div>
+                        <textarea id="nodeCodeInput" rows="8" spellcheck="false" placeholder="// Write code for this file..."
+                            class="w-full p-3 rounded-xl bg-slate-950 text-emerald-400 font-mono text-xs leading-relaxed border border-slate-800 focus:border-indigo-500 focus:outline-none resize-y"></textarea>
+                        <div class="rounded-xl overflow-hidden border border-slate-800">
+                            <div class="bg-slate-800/90 px-3 py-1 text-[10px] font-mono uppercase tracking-wider text-slate-400 flex justify-between">
+                                <span>Preview</span><span id="codeLangBadge">JavaScript</span>
+                            </div>
+                            <pre class="m-0 p-3 bg-[#282c34] text-xs overflow-x-auto"><code id="nodeCodePreview" class="language-javascript"></code></pre>
+                        </div>
+                    </div>
+
+                    <!-- TAB 3: Multi-Image Media Gallery -->
+                    <div id="tab-media" class="tab-content hidden space-y-3">
+                        <div class="flex gap-2">
+                            <input id="nodeImageUrlInput" type="url" placeholder="Paste Image URL and press + Add..."
+                                class="flex-1 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs focus:border-indigo-500 focus:outline-none" />
+                            <button id="addImageUrlBtn" class="px-3 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold">+ Add</button>
+                        </div>
+                        <div class="relative border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-4 text-center hover:border-indigo-500 transition cursor-pointer" id="imageDropZone">
+                            <input id="nodeImageFileInput" type="file" accept="image/*" multiple class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                            <i data-lucide="upload-cloud" class="w-7 h-7 mx-auto text-indigo-500 mb-1"></i>
+                            <p class="text-xs font-semibold">Click or Drop Multiple Images (Full Quality IndexedDB)</p>
+                        </div>
+                        <div id="nodeMediaGallery" class="grid grid-cols-2 gap-2"></div>
+                    </div>
+
+                    <!-- TAB 4: Git Track -->
+                    <div id="tab-git" class="tab-content hidden space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Commit / Track Note</label>
+                            <div class="flex gap-1.5">
+                                <select id="gitCommitType" class="px-2 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs">
+                                    <option value="feat">✨ feat</option>
+                                    <option value="code">💻 code</option>
+                                    <option value="fix">🐛 fix</option>
+                                    <option value="note">📝 note</option>
+                                </select>
+                                <input id="gitCommitMsg" type="text" placeholder="e.g., Added MUX logic..."
+                                    class="flex-1 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs focus:border-indigo-500 focus:outline-none" />
+                                <button id="addGitCommitBtn" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold whitespace-nowrap flex items-center gap-1">
+                                    <i data-lucide="git-commit" class="w-3.5 h-3.5"></i><span>Commit</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400">History Log</label>
+                            <div id="gitHistoryList" class="space-y-1.5"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-5 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+                <span id="nodeMetaInfo">ID: --</span>
+                <button id="panelDeleteNodeBtn" class="text-rose-500 hover:underline flex items-center gap-1 font-medium">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Move to Bin
+                </button>
+            </div>
+        </aside>
+
+        <!-- SYNC MODAL (JSON, FIREBASE, GOOGLE DRIVE) -->
+        <div id="syncModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+                <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center"><i data-lucide="cloud-cog" class="w-5 h-5"></i></div>
+                        <div>
+                            <h3 class="font-bold text-base">Cloud Sync & Backup</h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">JSON • Firebase Firestore • Google Drive</p>
+                        </div>
+                    </div>
+                    <button id="closeSyncModalBtn" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
+                <div class="flex border-b border-slate-200 dark:border-slate-800 px-6 bg-slate-50/50 dark:bg-slate-950/30 overflow-x-auto">
+                    <button data-synctab="json" class="sync-tab-btn py-3 px-4 text-xs font-bold border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400 whitespace-nowrap">1. JSON Backup</button>
+                    <button data-synctab="firebase" class="sync-tab-btn py-3 px-4 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 whitespace-nowrap">2. Firebase</button>
+                    <button data-synctab="gdrive" class="sync-tab-btn py-3 px-4 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 whitespace-nowrap">3. Google Drive</button>
+                </div>
+                <div class="p-6 overflow-y-auto space-y-5 text-sm select-text">
+                    <!-- Tab 1: JSON -->
+                    <div id="synctab-json" class="sync-tab-panel space-y-4">
+                        <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs leading-relaxed">
+                            <strong>Zero-Cost Backup:</strong> Auto-saved in browser LocalStorage. Export as portable <code>.json</code> (includes all maps, tabs, notes, code, images, trash, git logs).
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <button id="exportJsonBtn" class="flex flex-col items-center justify-center gap-2 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:bg-indigo-500/5 transition">
+                                <i data-lucide="download" class="w-7 h-7 text-indigo-500"></i>
+                                <span class="font-bold text-sm">Export All (.JSON)</span>
+                                <span class="text-xs text-slate-400 text-center">All maps + trash + settings</span>
+                            </button>
+                            <label class="flex flex-col items-center justify-center gap-2 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-emerald-500 hover:bg-emerald-500/5 transition cursor-pointer">
+                                <i data-lucide="upload" class="w-7 h-7 text-emerald-500"></i>
+                                <span class="font-bold text-sm">Import (.JSON)</span>
+                                <span class="text-xs text-slate-400 text-center">Restore workspace</span>
+                                <input id="importJsonInput" type="file" accept=".json,application/json" class="hidden" />
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Tab 2: Firebase -->
+                    <div id="synctab-firebase" class="sync-tab-panel hidden space-y-4">
+                        <div class="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-200 space-y-1">
+                            <p class="font-bold">Firebase Free Spark Plan Setup:</p>
+                            <p>1. Enable <strong>Authentication (Google)</strong> + <strong>Firestore Database</strong> in Firebase Console.</p>
+                            <p>2. Paste valid JSON keys inside <code>{ ... }</code> (without <code>const firebaseConfig =</code>).</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold mb-1">Firebase Web Config JSON</label>
+                            <textarea id="firebaseConfigInput" rows="5" placeholder='{"apiKey":"AIza...","authDomain":"your-app.firebaseapp.com","projectId":"your-app"}'
+                                class="w-full p-3 rounded-xl bg-slate-100 dark:bg-slate-950 font-mono text-xs border border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:outline-none"></textarea>
+                        </div>
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <button id="connectFirebaseBtn" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold flex items-center gap-1.5">
+                                <i data-lucide="flame" class="w-4 h-4"></i><span>Connect & Sign In</span>
+                            </button>
+                            <div class="flex items-center gap-2">
+                                <button id="pushFirebaseBtn" disabled class="px-3 py-2 rounded-xl bg-indigo-600 disabled:opacity-40 text-white text-xs font-semibold">Push ↑</button>
+                                <button id="pullFirebaseBtn" disabled class="px-3 py-2 rounded-xl bg-emerald-600 disabled:opacity-40 text-white text-xs font-semibold">Pull ↓</button>
+                            </div>
+                        </div>
+                        <p id="firebaseStatusText" class="text-xs text-slate-400">Status: Not connected</p>
+                    </div>
+
+                    <!-- Tab 3: Google Drive -->
+                    <div id="synctab-gdrive" class="sync-tab-panel hidden space-y-4">
+                        <div class="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-800 dark:text-blue-200 space-y-1">
+                            <p class="font-bold">Google Drive Folder Sync (<code>MindMap_Flows</code>):</p>
+                            <p>1. Enable <strong>Google Drive API</strong> in Google Cloud Console and create an <strong>OAuth 2.0 Web Client ID</strong>.</p>
+                            <p>2. Add your current origin URL (e.g. <code>http://localhost:8000</code>) and paste Client ID below.</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold mb-1">Google OAuth 2.0 Client ID</label>
+                            <input id="gdriveClientIdInput" type="text" placeholder="1234567890-abcdefg.apps.googleusercontent.com"
+                                class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-950 font-mono text-xs border border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:outline-none" />
+                        </div>
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <button id="authorizeGdriveBtn" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5">
+                                <i data-lucide="hard-drive" class="w-4 h-4"></i><span>Authorize Drive</span>
+                            </button>
+                            <div class="flex items-center gap-2">
+                                <button id="saveToGdriveBtn" disabled class="px-3 py-2 rounded-xl bg-indigo-600 disabled:opacity-40 text-white text-xs font-semibold">Save ↑</button>
+                                <button id="loadFromGdriveBtn" disabled class="px-3 py-2 rounded-xl bg-emerald-600 disabled:opacity-40 text-white text-xs font-semibold">Load ↓</button>
+                            </div>
+                        </div>
+                        <p id="gdriveStatusText" class="text-xs text-slate-400">Status: Awaiting OAuth Client ID</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAP MANAGER + RESTORE BIN MODAL -->
+        <div id="mapManagerModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+                <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center"><i data-lucide="folder-open" class="w-5 h-5"></i></div>
+                        <div>
+                            <h3 class="font-bold text-base">All Maps & Restore Bin</h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Open, rename, or restore deleted maps & subtrees</p>
+                        </div>
+                    </div>
+                    <button id="closeMapManagerBtn" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
+                <div class="p-6 overflow-y-auto space-y-4 select-text">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Workspace Maps</h4>
+                            <button id="openDefaultColorsBtn" class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+                                <i data-lucide="palette" class="w-3.5 h-3.5"></i> Customize Status Colors
+                            </button>
+                        </div>
+                        <div id="mapManagerList" class="space-y-2"></div>
+                    </div>
+                    <div class="pt-4 border-t border-slate-200 dark:border-slate-800">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Restore Bin (<span id="trashCount">0</span>)</h4>
+                            <button id="clearTrashBtn" class="text-xs font-semibold text-rose-500 hover:underline">Empty Bin</button>
+                        </div>
+                        <div id="restoreList" class="space-y-2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STATUS DEFAULT COLORS MODAL -->
+        <div id="defaultColorsModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-bold text-base flex items-center gap-2"><i data-lucide="palette" class="w-5 h-5 text-indigo-500"></i> Default Status Colors</h3>
+                    <button id="closeDefaultColorsBtn" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><i data-lucide="x" class="w-4 h-4"></i></button>
+                </div>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Colors automatically applied when creating or switching a node's status.</p>
+                <div id="defaultColorsForm" class="space-y-2"></div>
+                <div class="flex items-center justify-between pt-2">
+                    <button id="resetDefaultColorsBtn" class="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold">↺ Reset</button>
+                    <button id="doneDefaultColorsBtn" class="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold">Done</button>
+                </div>
+            </div>
+        </div>
+
+		<!-- IMAGE LIGHTBOX VIEWER + INTEGRATED NOTES/CODE/GIT TABS -->
+        <div id="lightboxModal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-slate-950/90 backdrop-blur-md p-3 sm:p-6">
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-6xl h-[90vh] flex flex-col lg:flex-row overflow-hidden shadow-2xl">
+                <!-- Left: Image Viewer & Swipe Controls -->
+                <div class="flex-1 bg-slate-950 relative flex flex-col justify-between p-4 min-h-[45%] select-none">
+                    <div class="flex items-center justify-between text-white z-10">
+                        <span id="lbCounter" class="text-xs font-mono bg-white/10 px-3 py-1 rounded-full">1 / 1</span>
+                        <div class="flex items-center gap-1.5">
+                            <button id="lbZoomOutBtn" class="p-2 rounded-xl bg-white/10 hover:bg-white/20" title="Zoom Out"><i data-lucide="zoom-out" class="w-4 h-4"></i></button>
+                            <button id="lbZoomInBtn" class="p-2 rounded-xl bg-white/10 hover:bg-white/20" title="Zoom In"><i data-lucide="zoom-in" class="w-4 h-4"></i></button>
+                            <button id="lbResetZoomBtn" class="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-mono">100%</button>
+                        </div>
+                    </div>
+
+                    <div id="lbImageStage" class="flex-1 flex items-center justify-center overflow-auto my-2">
+                        <img id="lbImage" src="" alt="Preview" class="max-h-full max-w-full object-contain transition-transform duration-150 origin-center" />
+                    </div>
+
+                    <!-- Prev / Next Swipe Buttons -->
+                    <button id="lbPrevBtn" class="absolute left-3 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/15 hover:bg-white/30 text-white backdrop-blur transition">
+                        <i data-lucide="chevron-left" class="w-6 h-6"></i>
+                    </button>
+                    <button id="lbNextBtn" class="absolute right-3 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/15 hover:bg-white/30 text-white backdrop-blur transition">
+                        <i data-lucide="chevron-right" class="w-6 h-6"></i>
+                    </button>
+
+                    <div class="text-center text-xs text-slate-300 truncate" id="lbCaption"></div>
+                </div>
+
+                <!-- Right: Synchronized Node Notes, Multi-Code Files & Git Logs -->
+                <div class="w-full lg:w-[420px] border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 flex flex-col h-[55%] lg:h-full bg-white dark:bg-slate-900">
+                    <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 dark:border-slate-800">
+                        <h3 id="lbNodeTitle" class="font-bold text-sm truncate pr-2">Node Title</h3>
+                        <button id="closeLightboxBtn" class="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+                    </div>
+                    <div class="flex bg-slate-100 dark:bg-slate-800 p-1 m-3 rounded-xl text-xs font-semibold">
+                        <button data-lbtab="notes" class="lb-tab flex-1 py-1.5 rounded-lg bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm">📝 Notes</button>
+                        <button data-lbtab="code" class="lb-tab flex-1 py-1.5 rounded-lg text-slate-500">💻 Code Files</button>
+                        <button data-lbtab="git" class="lb-tab flex-1 py-1.5 rounded-lg text-slate-500">🔀 Git Log</button>
+                    </div>
+                    <div class="flex-1 overflow-y-auto px-4 pb-4 space-y-3 select-text">
+                        <div id="lb-pane-notes" class="lb-pane markdown-body text-sm"></div>
+                        <div id="lb-pane-code" class="lb-pane hidden space-y-2">
+                            <div id="lbCodeFileTabs" class="flex gap-1.5 overflow-x-auto pb-1"></div>
+                            <div class="flex justify-between items-center text-[11px] text-slate-400">
+                                <span id="lbCodeLangLabel">JavaScript</span>
+                                <button id="lbCopyCodeBtn" class="px-2.5 py-1 rounded bg-indigo-600 text-white font-semibold">Copy Code</button>
+                            </div>
+                            <pre class="p-3 rounded-xl bg-[#282c34] text-xs overflow-x-auto"><code id="lbCodeContent"></code></pre>
+                        </div>
+                        <div id="lb-pane-git" class="lb-pane hidden space-y-2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+		
+        <!-- HELP & SHORTCUTS MODAL -->
+        <div id="helpModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-bold text-base flex items-center gap-2"><i data-lucide="keyboard" class="w-5 h-5 text-indigo-500"></i> Shortcuts & Guide</h3>
+                    <button id="closeHelpModalBtn" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><i data-lucide="x" class="w-4 h-4"></i></button>
+                </div>
+                <div class="space-y-2.5 text-xs">
+                    <div class="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800"><span class="text-slate-500 dark:text-slate-400">Add Child Node</span><kbd class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono font-bold">Tab</kbd></div>
+                    <div class="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800"><span class="text-slate-500 dark:text-slate-400">Add Sibling Node</span><kbd class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono font-bold">Enter</kbd></div>
+                    <div class="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800"><span class="text-slate-500 dark:text-slate-400">Move Selected to Bin</span><kbd class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono font-bold">Delete</kbd></div>
+                    <div class="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800"><span class="text-slate-500 dark:text-slate-400">Multi-Select Nodes</span><kbd class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono font-bold">Shift+Click / Box</kbd></div>
+                    <div class="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800"><span class="text-slate-500 dark:text-slate-400">Pan / Zoom</span><kbd class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono font-bold">Drag / Scroll</kbd></div>
+                    <div class="flex justify-between py-1.5"><span class="text-slate-500 dark:text-slate-400">Close Drawer / Modal</span><kbd class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono font-bold">Esc</kbd></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+    </div>
+
+    <!-- ================= MODULAR JAVASCRIPT ARCHITECTURE ================= -->
+    <script>
+        /* ====================================================================
+         * MODULE 1: CONSTANTS & CONFIGURATION
+         * ==================================================================== */
+        const Config = {
+            STORAGE_KEY: 'thinking_flow_v6_modular',
+            LEGACY_KEYS: ['thinking_flow_merged_v4', 'thinking_flow_v3', 'thinking_flow_mindmap_v1'],
+            CLOUD_CFG_KEY: 'thinking_flow_cloud_config_v1',
+            DEFAULT_STATUS_COLORS: {
+                'Idea': '#eab308', 'Code': '#3b82f6', 'In Progress': '#f97316',
+                'Hardware': '#a855f7', 'Research': '#06b6d4', 'Done': '#22c55e'
+            },
+            FIXED_PALETTE: [
+                { name: 'Idea Yellow', hex: '#eab308' }, { name: 'Code Blue', hex: '#3b82f6' },
+                { name: 'Done Green', hex: '#22c55e' },  { name: 'Alert Red', hex: '#ef4444' },
+                { name: 'Hardware Purple', hex: '#a855f7' }, { name: 'Cyan Sky', hex: '#06b6d4' },
+                { name: 'Orange', hex: '#f97316' },      { name: 'Pink', hex: '#ec4899' }
+            ],
+            DEFAULT_LANGUAGES: [
+                'JavaScript', 'Python', 'HTML', 'CSS', 'C', 'C++', 'Verilog',
+                'Java', 'SQL', 'Bash / Termux', 'Arduino / ESP', 'JSON', 'Markdown'
+            ],
+            STATUS_BADGES: {
+                'Idea': { icon: '💡', bg: 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30' },
+                'In Progress': { icon: '⚡', bg: 'bg-blue-500/15 text-blue-600 dark:text-blue-300 border-blue-500/30' },
+                'Done': { icon: '✅', bg: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30' },
+                'Hardware': { icon: '🔧', bg: 'bg-orange-500/15 text-orange-600 dark:text-orange-300 border-orange-500/30' },
+                'Code': { icon: '💻', bg: 'bg-purple-500/15 text-purple-600 dark:text-purple-300 border-purple-500/30' },
+                'Research': { icon: '🔬', bg: 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-300 border-cyan-500/30' }
+            }
+        };
+
+        /* ====================================================================
+         * MODULE 2: CENTRALIZED STATE
+         * ==================================================================== */
+        const State = {
+            maps: [],
+            activeMapId: null,
+            openTabIds: [],
+            trash: [],
+            statusColors: { ...Config.DEFAULT_STATUS_COLORS },
+            languages: [...Config.DEFAULT_LANGUAGES],
+            selectedNodeId: null,
+            selectedNodeIds: [],
+            viewport: { x: 40, y: 40, scale: 1 },
+            searchQuery: '',
+            isMarkdownPreview: false,
+            isDark: true,
+            isBoxSelectMode: false,
+            isPanning: false,
+            panStart: { x: 0, y: 0 },
+            isSelecting: false,
+            selectionBox: { startX: 0, startY: 0, endX: 0, endY: 0 },
+            draggedNodeId: null,
+            dragOffset: { x: 0, y: 0 },
+            hasDraggedMoved: false,
+            firebaseApp: null,
+            firebaseUser: null,
+            gdriveAccessToken: null
+        };
+
+        /* ====================================================================
+         * MODULE 3: UTILITIES
+         * ==================================================================== */
+        const Utils = {
+            $: (id) => document.getElementById(id),
+            now: () => {
+                const d = new Date();
+                return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' +
+                       d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+            },
+            esc: (str) => {
+                if (!str) return '';
+                return String(str)
+                    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            },
+            toast: (msg, type = 'info') => {
+                const container = Utils.$('toastContainer');
+                const t = document.createElement('div');
+                const colors = {
+                    info: 'bg-slate-900 dark:bg-slate-800 text-white border-slate-700',
+                    success: 'bg-emerald-600 text-white border-emerald-500',
+                    error: 'bg-rose-600 text-white border-rose-500'
+                };
+                t.className = `pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-xl border shadow-xl text-xs font-semibold transform transition-all duration-300 translate-y-2 opacity-0 ${colors[type] || colors.info}`; t.innerHTML = `<span>${Utils.esc(msg)}</span>`;
+                container.appendChild(t);
+                requestAnimationFrame(() => t.classList.remove('translate-y-2', 'opacity-0'));
+                setTimeout(() => {
+                    t.classList.add('translate-y-2', 'opacity-0');
+                    setTimeout(() => t.remove(), 300);
+                }, 3000);
+            },
+            showModal: (id) => { const m = Utils.$(id); if (m) { m.classList.remove('hidden'); m.classList.add('flex'); } },
+            hideModal: (id) => { const m = Utils.$(id); if (m) { m.classList.add('hidden'); m.classList.remove('flex'); } }
+        };
+
+		/* ====================================================================
+         * MODULE 4: STORAGE (INDEXEDDB + LOCALSTORAGE + MIGRATION)
+         * ==================================================================== */
+        const DBStore = {
+            dbName: 'ThinkingFlowDB_v7',
+            storeName: 'workspace',
+            open: () => new Promise((resolve, reject) => {
+                const req = indexedDB.open(DBStore.dbName, 1);
+                req.onupgradeneeded = () => req.result.createObjectStore(DBStore.storeName);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            }),
+            set: async (key, val) => {
+                try {
+                    const db = await DBStore.open();
+                    return new Promise((res, rej) => {
+                        const tx = db.transaction(DBStore.storeName, 'readwrite');
+                        tx.objectStore(DBStore.storeName).put(val, key);
+                        tx.oncomplete = () => res();
+                        tx.onerror = () => rej(tx.error);
+                    });
+                } catch (e) { console.warn('IndexedDB save skip:', e); }
+            },
+            get: async (key) => {
+                try {
+                    const db = await DBStore.open();
+                    return new Promise((res, rej) => {
+                        const tx = db.transaction(DBStore.storeName, 'readonly');
+                        const req = tx.objectStore(DBStore.storeName).get(key);
+                        req.onsuccess = () => res(req.result);
+                        req.onerror = () => rej(req.error);
+                    });
+                } catch (e) { return null; }
+            }
+        };
+
+        function upgradeNodeSchema(n, now) {
+            const images = Array.isArray(n.images) ? n.images
+                : (n.image && n.image.trim() ? [{ id: 'img_' + Math.random().toString(36).slice(2, 7), src: n.image, name: 'diagram.jpg' }] : []);
+            const codeFiles = Array.isArray(n.codeFiles) && n.codeFiles.length ? n.codeFiles
+                : [{ id: 'cf_' + Math.random().toString(36).slice(2, 7), name: 'main.' + (n.codeLang === 'Python' ? 'py' : 'js'), lang: n.codeLang || 'JavaScript', content: n.code || '' }];
+            return {
+                ...n,
+                locked: !!n.locked,
+                createdAt: n.createdAt || now,
+                modifiedAt: n.modifiedAt || now,
+                images,
+                activeImgIdx: n.activeImgIdx || 0,
+                codeFiles,
+                activeCodeIdx: n.activeCodeIdx || 0,
+                gitLogs: n.gitLogs || []
+            };
+        }
+
+        const Storage = {
+            saveTimer: null,
+            save: () => {
+                const badge = Utils.$('saveStatusBadge');
+                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span><span>Saving...</span>`;
+                clearTimeout(Storage.saveTimer);
+                Storage.saveTimer = setTimeout(async () => {
+                    const payload = {
+                        maps: State.maps, activeMapId: State.activeMapId, openTabIds: State.openTabIds,
+                        trash: State.trash, statusColors: State.statusColors, languages: State.languages,
+                        selectedNodeId: State.selectedNodeId, viewport: State.viewport, isDark: State.isDark
+                    };
+                    await DBStore.set('state_v7', payload);
+                    try {
+                        localStorage.setItem(Config.STORAGE_KEY, JSON.stringify(payload));
+                    } catch (e) { /* Large images safely remain in IndexedDB */ }
+                    badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span><span>Auto-Saved (IndexedDB)</span>`;
+                    UI.updateTrashBadge();
+                }, 250);
+            },
+            loadAsync: async () => {
+                const idbData = await DBStore.get('state_v7');
+                if (idbData && idbData.maps && idbData.maps.length) return Storage.normalize(idbData);
+                return Storage.load();
+            },
+            load: () => {
+                const keys = [Config.STORAGE_KEY, ...Config.LEGACY_KEYS];
+                for (const key of keys) {
+                    try {
+                        const raw = localStorage.getItem(key);
+                        if (!raw) continue;
+                        const parsed = JSON.parse(raw);
+                        if (parsed.maps && Array.isArray(parsed.maps) && parsed.maps.length) return Storage.normalize(parsed);
+                        if (parsed.nodes && Array.isArray(parsed.nodes) && parsed.nodes.length) return Storage.migrateV1(parsed);
+                    } catch (e) {}
+                }
+                return null;
+            },
+            normalize: (data) => {
+                const now = Utils.now();
+                const maps = data.maps.map(m => ({
+                    id: m.id || 'map_' + Date.now() + Math.random().toString(36).slice(2),
+                    title: m.title || 'Untitled Map',
+                    layout: m.layout || 'tree',
+                    createdAt: m.createdAt || now,
+                    modifiedAt: m.modifiedAt || now,
+                    nodes: (m.nodes || []).map(n => upgradeNodeSchema(n, now))
+                }));
+                return {
+                    maps,
+                    activeMapId: data.activeMapId || maps[0]?.id,
+                    openTabIds: (data.openTabIds && data.openTabIds.length) ? data.openTabIds : maps.map(m => m.id),
+                    trash: data.trash || [],
+                    statusColors: { ...Config.DEFAULT_STATUS_COLORS, ...(data.statusColors || {}) },
+                    languages: (data.languages && data.languages.length) ? data.languages : [...Config.DEFAULT_LANGUAGES],
+                    selectedNodeId: data.selectedNodeId || null,
+                    viewport: data.viewport || (data.pan ? { x: data.pan.x, y: data.pan.y, scale: data.zoom || 1 } : { x: 40, y: 40, scale: 1 }),
+                    isDark: data.isDark !== undefined ? data.isDark : (data.theme !== 'light')
+                };
+            },
+            migrateV1: (v1) => {
+                const now = Utils.now();
+                const mapId = 'map_' + Date.now();
+                return Storage.normalize({
+                    maps: [{
+                        id: mapId, title: v1.title || 'Migrated Map', layout: v1.layout || 'tree',
+                        createdAt: now, modifiedAt: now,
+                        nodes: v1.nodes.map(n => ({ ...n, gitLogs: [{ type: 'note', msg: 'Migrated from v1', time: now }] }))
+                    }],
+                    activeMapId: mapId, openTabIds: [mapId]
+                });
+            }
+        };
+
+        /* ====================================================================
+         * MODULE 5: AUTH & WELCOME SCREEN
+         * ==================================================================== */
+        const Auth = {
+            enterApp: () => {
+                const welcome = Utils.$('welcomeScreen');
+                welcome.style.opacity = '0';
+                setTimeout(() => {
+                    welcome.style.display = 'none';
+                    Utils.$('appContainer').classList.remove('hidden');
+                    App.init();
+                }, 250);
+            },
+            loginFromWelcome: async () => {
+                Auth.enterApp();
+                Utils.showModal('syncModal');
+                document.querySelector('[data-synctab="firebase"]').click();
+                const rawCfg = Utils.$('firebaseConfigInput').value.trim();
+                if (rawCfg) {
+                    await Cloud.connectFirebase();
+                } else {
+                    Utils.toast('Paste your Firebase Config JSON to sign in.', 'info');
+                }
+            }
+        };
+
+        /* ====================================================================
+         * MODULE 6: LAYOUT ALGORITHMS (Respects Locked Nodes)
+         * ==================================================================== */
+ const Layout = {
+            // ஒவ்வொரு Node-ன் உள்ளடக்கத்திற்கு ஏற்ற உண்மையான உயரத்தைக் கணக்கிடும் பகுதி
+            getNodeHeight: (node) => {
+                const el = Utils.$('nodesLayer')?.querySelector(`[data-id="${node.id}"]`);
+                if (el && el.offsetHeight > 40) return el.offsetHeight;
+                if (node.image && node.image.trim()) return 205; // படம் இருந்தால் அதிக உயரம்
+                if (node.notes && node.notes.trim()) return 145; // குறிப்புகள் இருந்தால் நடுத்தர உயரம்
+                return 105; // சாதாரண கார்டு உயரம்
+            },
+
+            apply: (mode, animate = true) => {
+                const map = App.getActiveMap();
+                if (!map) return;
+                map.layout = mode;
+                UI.updateLayoutButtons(mode);
+
+                if (mode === 'freeform') { Storage.save(); return; }
+
+                const world = Utils.$('canvasWorld');
+                if (animate) {
+                    world.classList.add('layout-animating');
+                    setTimeout(() => world.classList.remove('layout-animating'), 400);
+                }
+
+                const nodes = map.nodes;
+                const root = nodes.find(n => !n.parentId) || nodes[0];
+                if (!root) return;
+
+                const childrenMap = {};
+                nodes.forEach(n => childrenMap[n.id] = []);
+                nodes.forEach(n => { if (n.parentId && childrenMap[n.parentId]) childrenMap[n.parentId].push(n); });
+
+                if (mode === 'tree') {
+                    const gapX = 330;
+                    const verticalPadding = 28; // கார்டுகளுக்கு இடையேயான பாதுகாப்பான இடைவெளி
+                    let cursorY = 100;
+
+                    const layoutSub = (node, depth) => {
+                        if (node.locked) return;
+                        const kids = childrenMap[node.id] || [];
+                        const nodeH = Layout.getNodeHeight(node);
+                        node.x = 100 + depth * gapX;
+
+                        if (kids.length === 0) {
+                            node.y = cursorY;
+                            cursorY += nodeH + verticalPadding;
+                        } else {
+                            const startY = cursorY;
+                            kids.forEach(k => layoutSub(k, depth + 1));
+                            const unlocked = kids.filter(k => !k.locked);
+                            if (unlocked.length > 0) {
+                                const firstCenter = unlocked[0].y + Layout.getNodeHeight(unlocked[0]) / 2;
+                                const lastCenter = unlocked[unlocked.length - 1].y + Layout.getNodeHeight(unlocked[unlocked.length - 1]) / 2;
+                                node.y = (firstCenter + lastCenter) / 2 - nodeH / 2;
+                            }
+                            // Parent கார்டு அதன் குழந்தைகளை விட உயரமாக இருந்தால் கீழே உள்ளவை இடிக்காமல் தள்ளும்
+                            const minNextY = node.y + nodeH + verticalPadding;
+                            if (cursorY < minNextY) cursorY = minNextY;
+                        }
+                    };
+                    layoutSub(root, 0);
+                } else if (mode === 'radial') {
+                    const cx = 600, cy = 450, nodeW = 256;
+                    const rootH = Layout.getNodeHeight(root);
+                    if (!root.locked) { root.x = cx - nodeW / 2; root.y = cy - rootH / 2; }
+
+                    const countLeaves = (n) => {
+                        const kids = (childrenMap[n.id] || []).filter(k => !k.locked);
+                        return kids.length === 0 ? 1 : kids.reduce((s, k) => s + countLeaves(k), 0);
+                    };
+                    const layoutRadial = (node, depth, a0, a1) => {
+                        if (node.locked) return;
+                        const kids = (childrenMap[node.id] || []).filter(k => !k.locked);
+                        if (kids.length === 0) return;
+                        const radius = depth * 360;
+                        const total = kids.reduce((s, k) => s + countLeaves(k), 0);
+                        let cursor = a0;
+                        kids.forEach(kid => {
+                            const sweep = (a1 - a0) * (countLeaves(kid) / total);
+                            const mid = cursor + sweep / 2;
+                            const kidH = Layout.getNodeHeight(kid);
+                            kid.x = cx + Math.cos(mid) * radius - nodeW / 2;
+                            kid.y = cy + Math.sin(mid) * radius - kidH / 2;
+                            layoutRadial(kid, depth + 1, cursor, cursor + sweep);
+                            cursor += sweep;
+                        });
+                    };
+                    layoutRadial(root, 1, 0, Math.PI * 2);
+                }
+
+                UI.renderAll();
+                Storage.save();
+            }
+        };
+        /* ====================================================================
+         * MODULE 7: UI RENDERER & INSPECTOR
+         * ==================================================================== */
+        const UI = {
+            renderAll: () => {
+                UI.renderNodes();
+                UI.renderMapTabs();
+                const map = App.getActiveMap();
+                const titleInput = Utils.$('mapTitleInput');
+                if (document.activeElement !== titleInput && map) titleInput.value = map.title;
+                if (window.lucide) lucide.createIcons();
+                requestAnimationFrame(() => UI.renderConnections());
+            },
+            renderMapTabs: () => {
+                const list = Utils.$('mapTabsList');
+                list.innerHTML = '';
+                State.openTabIds.forEach(id => {
+                    const m = State.maps.find(x => x.id === id);
+                    if (!m) return;
+                    const isActive = id === State.activeMapId;
+                    const pill = document.createElement('div');
+                    pill.className = `map-tab-pill shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer whitespace-nowrap border border-slate-200 dark:border-slate-700 hover:border-indigo-400 ${isActive ? 'active border-indigo-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200'}`;
+                    pill.innerHTML = `
+                        <span class="truncate max-w-[130px]">${Utils.esc(m.title)}</span>
+                        <button class="tab-close p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10" title="Close tab">
+                            <i data-lucide="x" class="w-3 h-3"></i>
+                        </button>`;
+                    pill.addEventListener('click', (e) => {
+                        if (e.target.closest('.tab-close')) { e.stopPropagation(); App.closeMapTab(id); }
+                        else { App.switchMap(id); }
+                    });
+                    list.appendChild(pill);
+                });
+            },
+            renderNodes: () => {
+                const layer = Utils.$('nodesLayer');
+                layer.innerHTML = '';
+                const map = App.getActiveMap();
+                if (!map) return;
+                const query = State.searchQuery.trim().toLowerCase();
+
+                map.nodes.forEach(node => {
+                    const isSelected = State.selectedNodeIds.includes(node.id) || node.id === State.selectedNodeId;
+                    const isRoot = !node.parentId;
+                    const statusMeta = Config.STATUS_BADGES[node.status] || Config.STATUS_BADGES['Idea'];
+                    const hasNotes = node.notes && node.notes.trim().length > 0;
+                    const hasCode = node.code && node.code.trim().length > 0;
+                    const hasImage = (node.images && node.images.length > 0) || (node.image && node.image.trim().length > 0);
+                    const gitCount = (node.gitLogs || []).length;
+
+                    const matchesSearch = !query ||
+                        (node.title || '').toLowerCase().includes(query) ||
+                        (node.notes || '').toLowerCase().includes(query) ||
+                        (node.code || '').toLowerCase().includes(query) ||
+                        (node.status || '').toLowerCase().includes(query);
+
+                    const el = document.createElement('div');
+                    el.dataset.id = node.id;
+                    el.style.transform = `translate(${node.x}px,${node.y}px)`;
+                    el.style.borderLeftColor = node.color || '#6366f1';
+                    el.className = `mind-node absolute top-0 left-0 w-64 rounded-2xl bg-white/95 dark:bg-slate-900/95 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 border-l-4 p-3.5 shadow-lg cursor-pointer select-none transition-opacity duration-200 overflow-hidden ${ isSelected ? 'node-selected ring-2 ring-indigo-500/60' : 'hover:border-slate-300 dark:hover:border-slate-700' } ${!matchesSearch ? 'opacity-25' : 'opacity-100'} ${isRoot ? 'ring-1 ring-indigo-500/30' : ''} ${node.locked ? 'node-locked' : ''}`;
+
+                    el.innerHTML = `
+                        <div class="flex items-center justify-between gap-2 mb-1.5 min-h-[20px] w-full">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${statusMeta.bg} min-w-0 shrink">
+                                <span class="shrink-0">${statusMeta.icon}</span>
+                                <span class="truncate">${Utils.esc(node.status || 'Idea')}</span>
+                            </span>
+                            <div class="flex items-center gap-1.5 text-slate-400 shrink-0">
+                                ${node.locked ? '<i data-lucide="lock" class="w-3.5 h-3.5 text-rose-500" title="Locked"></i>' : ''}
+                                ${hasNotes ? '<i data-lucide="file-text" class="w-3.5 h-3.5 text-sky-400" title="Notes"></i>' : ''}
+                                ${hasCode ? '<i data-lucide="code-2" class="w-3.5 h-3.5 text-emerald-400" title="Code"></i>' : ''}
+                                ${hasImage ? '<i data-lucide="image" class="w-3.5 h-3.5 text-amber-400" title="Image"></i>' : ''}
+                                ${gitCount > 0 ? `<span class="flex items-center gap-0.5 text-[10px] font-semibold text-indigo-400" title="${gitCount} commits"><i data-lucide="git-commit" class="w-3 h-3"></i>${gitCount}</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="font-bold text-sm text-slate-800 dark:text-slate-100 leading-snug line-clamp-2 break-words">${Utils.esc(node.title || 'Untitled Node')}</div>${(node.images && node.images.length) ? `<div onclick="event.stopPropagation(); MediaCode.openLightbox('${node.id}', ${node.activeImgIdx || 0})" class="relative mt-2 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-950 h-24 group"><img src="${Utils.esc(node.images[node.activeImgIdx || 0].src)}" alt="thumb" class="w-full h-full object-cover" />${node.images.length > 1 ? `<span class="absolute bottom-1 right-1 bg-black/75 text-white text-[10px] px-1.5 py-0.5 rounded font-mono">🖼️ ${node.images.length}</span>` : ''}</div>` : ''}
+                        ${hasNotes && !hasImage ? `<p class="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">${Utils.esc((node.notes || '').replace(/[#*`>-]/g, '').trim())}</p>` : ''}
+                        ${node.modifiedAt ? `<div class="mt-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-800 text-[9px] text-slate-400 dark:text-slate-500 font-mono truncate">${Utils.esc(node.modifiedAt)}</div>` : ''}
+                    `;
+                    el.addEventListener('pointerdown', (e) => Events.handleNodePointerDown(e, node.id));
+                    layer.appendChild(el);
+                });
+            },
+            renderConnections: () => {
+                const layer = Utils.$('connectionsLayer');
+                layer.innerHTML = '';
+                const map = App.getActiveMap();
+                if (!map) return;
+                const nodeMap = new Map(map.nodes.map(n => [n.id, n]));
+                const nodesLayer = Utils.$('nodesLayer');
+
+                map.nodes.forEach(node => {
+                    if (!node.parentId) return;
+                    const parent = nodeMap.get(node.parentId);
+                    if (!parent) return;
+
+                    const nodeWidth = 256;
+                    const pEl = nodesLayer.querySelector(`[data-id="${parent.id}"]`);
+                    const cEl = nodesLayer.querySelector(`[data-id="${node.id}"]`);
+                    const pH = pEl ? pEl.offsetHeight : 84;
+                    const cH = cEl ? cEl.offsetHeight : 84;
+
+                    let d;
+                    if (map.layout === 'radial') {
+                        const sx = parent.x + nodeWidth / 2, sy = parent.y + pH / 2;
+                        const ex = node.x + nodeWidth / 2, ey = node.y + cH / 2;
+                        const mx = (sx + ex) / 2, my = (sy + ey) / 2;
+                        d = `M ${sx} ${sy} Q ${mx} ${my}, ${ex} ${ey}`;
+                    } else {
+                        const isRight = node.x >= parent.x;
+                        const sx = isRight ? parent.x + nodeWidth : parent.x;
+                        const sy = parent.y + pH / 2;
+                        const ex = isRight ? node.x : node.x + nodeWidth;
+                        const ey = node.y + cH / 2;
+                        const dx = Math.abs(ex - sx) * 0.5;
+                        d = `M ${sx} ${sy} C ${isRight ? sx + dx : sx - dx} ${sy}, ${isRight ? ex - dx : ex + dx} ${ey}, ${ex} ${ey}`;
+                    }
+
+                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    path.setAttribute('d', d);
+                    path.setAttribute('fill', 'none');
+                    path.setAttribute('stroke', node.color || '#6366f1');
+                    path.setAttribute('stroke-width', '2.5');
+                    path.setAttribute('stroke-opacity', '0.65');
+                    path.setAttribute('class', 'connector-path');
+                    layer.appendChild(path);
+                });
+            },
+			updateWorldTransform: () => {
+				const { x, y, scale } = State.viewport;
+				Utils.$('canvasWorld').style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+				Utils.$('zoomLevelLabel').textContent = `${Math.round(scale * 100)}%`;
+				Storage.save();
+			},
+            updateLayoutButtons: (activeMode) => {
+                document.querySelectorAll('.layout-btn').forEach(btn => {
+                    const isMatch = btn.dataset.layout === activeMode;
+                    btn.className = isMatch
+                        ? 'layout-btn px-2.5 py-1 rounded-lg bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400 flex items-center gap-1 transition font-semibold'
+                        : 'layout-btn px-2.5 py-1 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 transition';
+                });
+            },
+            updateTrashBadge: () => {
+                const badge = Utils.$('headerTrashBadge');
+                if (!badge) return;
+                if (State.trash.length > 0) {
+                    badge.textContent = State.trash.length;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            },
+            openInspector: (nodeId) => {
+                State.selectedNodeId = nodeId;
+                const node = App.getSelectedNode();
+                if (!node) return;
+
+                Utils.$('nodeTitleInput').value = node.title || '';
+                Utils.$('nodeStatusSelect').value = node.status || 'Idea';
+                Utils.$('inspectorColorDot').style.backgroundColor = node.color || '#6366f1';
+                Utils.$('nodeNotesInput').value = node.notes || '';
+                Utils.$('nodeCodeInput').value = node.code || '';
+                Utils.$('nodeImageUrlInput').value = node.image || '';
+                Utils.$('nodeMetaInfo').textContent = `ID: ${node.id}`;
+                Utils.$('nodeCreatedAt').textContent = node.createdAt || '--';
+                Utils.$('nodeModifiedAt').textContent = node.modifiedAt || '--';
+
+                Utils.$('panelLockBtn').innerHTML = node.locked
+                    ? '<i data-lucide="unlock" class="w-4 h-4"></i><span>Unlock</span>'
+                    : '<i data-lucide="lock" class="w-4 h-4"></i><span>Lock</span>';
+
+                if (node.codeLang && !State.languages.includes(node.codeLang)) State.languages.push(node.codeLang);
+                UI.populateLanguages();
+                Utils.$('nodeCodeLangSelect').value = node.codeLang || 'JavaScript';
+
+                document.querySelectorAll('#colorPalettePicker button').forEach(b => {
+                    const match = b.dataset.hex === node.color;
+                    b.classList.toggle('ring-2', match);
+                    b.classList.toggle('ring-white', match);
+                });
+
+                UI.updateCodePreview();
+                UI.updateMarkdownPreview();
+                UI.updateImagePreview(node.image);
+                UI.renderGitHistory(node);
+
+				MediaCode.renderInspectorGallery(node);
+                MediaCode.renderCodeTabs(node);
+				
+                Utils.$('nodeInspectorPanel').classList.remove('translate-x-[110%]');
+                UI.renderAll();
+            },
+            closeInspector: () => {
+                Utils.$('nodeInspectorPanel').classList.add('translate-x-[110%]');
+            },
+            populateLanguages: () => {
+                const sel = Utils.$('nodeCodeLangSelect');
+                sel.innerHTML = '';
+                State.languages.forEach(lang => {
+                    const o = document.createElement('option');
+                    o.value = lang; o.textContent = lang;
+                    sel.appendChild(o);
+                });
+            },
+            renderFixedColorSwatches: () => {
+                const container = Utils.$('colorPalettePicker');
+                container.innerHTML = '';
+                Config.FIXED_PALETTE.forEach(c => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.dataset.hex = c.hex;
+                    btn.className = 'shrink-0 w-5 h-5 rounded-full border-2 border-white dark:border-slate-900 shadow-sm hover:scale-110 transition';
+                    btn.style.backgroundColor = c.hex;
+                    btn.title = c.name;
+                    btn.onclick = () => {
+                        App.updateSelectedNode('color', c.hex);
+                        Utils.$('inspectorColorDot').style.backgroundColor = c.hex;
+                        document.querySelectorAll('#colorPalettePicker button').forEach(b => {
+                            b.classList.toggle('ring-2', b.dataset.hex === c.hex);
+                            b.classList.toggle('ring-white', b.dataset.hex === c.hex);
+                        });
+                    };
+                    container.appendChild(btn);
+                });
+                const custom = document.createElement('input');
+                custom.type = 'color';
+				custom.title = 'Custom Color';
+                custom.className = 'shrink-0 w-7 h-5 rounded cursor-pointer border-2 border-white dark:border-slate-900 shadow-sm p-0';
+                custom.oninput = (e) => {
+                    App.updateSelectedNode('color', e.target.value);
+                    Utils.$('inspectorColorDot').style.backgroundColor = e.target.value;
+                };
+                container.appendChild(custom);
+            },
+            updateCodePreview: () => {
+                const code = Utils.$('nodeCodeInput').value || '// No code snippet yet';
+                const lang = Utils.$('nodeCodeLangSelect').value || 'JavaScript';
+                const el = Utils.$('nodeCodePreview');
+                Utils.$('codeLangBadge').textContent = lang;
+                const langMap = { 'C++': 'cpp', 'C': 'c', 'Bash / Termux': 'bash', 'Arduino / ESP': 'cpp', 'JSON': 'json', 'Markdown': 'markdown' };
+                const hl = langMap[lang] || lang.toLowerCase().replace(/[^a-z0-9]/g, '');
+                el.className = `language-${hl}`;
+                el.textContent = code;
+                if (window.hljs) {
+                    delete el.dataset.highlighted;
+                    try { hljs.highlightElement(el); } catch (e) {}
+                }
+            },
+            updateMarkdownPreview: () => {
+                const raw = Utils.$('nodeNotesInput').value || '*No notes added yet.*';
+                const el = Utils.$('nodeNotesPreview');
+                if (window.marked) el.innerHTML = marked.parse(raw);
+                else el.textContent = raw;
+            },
+            updateImagePreview: (src) => {
+                const box = Utils.$('nodeImagePreviewContainer');
+                const img = Utils.$('nodeImagePreview');
+                if (src && src.trim()) { img.src = src.trim(); box.classList.remove('hidden'); }
+                else { img.src = ''; box.classList.add('hidden'); }
+            },
+            renderGitHistory: (node) => {
+                const list = Utils.$('gitHistoryList');
+                list.innerHTML = '';
+                const logs = node.gitLogs || [];
+                if (!logs.length) {
+                    list.innerHTML = '<div class="text-xs text-slate-400 italic p-2">No commits yet.</div>';
+                    return;
+                }
+                logs.forEach(log => {
+                    const row = document.createElement('div');
+                    row.className = 'p-2 rounded-lg bg-slate-100 dark:bg-slate-800/80 border-l-2 border-indigo-500 text-xs';
+                    const typeColor = { feat: 'text-emerald-400', code: 'text-blue-400', fix: 'text-rose-400', note: 'text-amber-400' }[log.type] || 'text-indigo-400';
+                    row.innerHTML = `
+                        <div class="flex justify-between items-center text-[10px] text-slate-400 mb-0.5">
+                            <strong class="${typeColor} uppercase tracking-wider">[${Utils.esc(log.type)}]</strong>
+                            <span class="font-mono">${Utils.esc(log.time)}</span>
+                        </div>
+                        <div class="text-slate-700 dark:text-slate-200">${Utils.esc(log.msg)}</div>`;
+                    list.appendChild(row);
+                });
+            },
+            openMapManagerModal: () => {
+                const list = Utils.$('mapManagerList');
+                list.innerHTML = '';
+                State.maps.forEach(m => {
+                    const isOpen = State.openTabIds.includes(m.id);
+                    const isActive = State.activeMapId === m.id;
+                    const row = document.createElement('div');
+                    row.className = `p-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 border ${isActive ? 'border-indigo-500 ring-1 ring-indigo-500/40' : 'border-slate-200 dark:border-slate-700'}`;
+                    row.innerHTML = `
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <strong class="text-sm truncate">${Utils.esc(m.title)}</strong>
+                                    <span class="text-[9px] px-1.5 py-0.5 rounded font-semibold ${isOpen ? 'bg-emerald-500/20 text-emerald-500' : 'bg-slate-500/20 text-slate-400'}">${isOpen ? 'OPEN' : 'CLOSED'}</span>
+                                    ${isActive ? '<span class="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400 font-semibold">ACTIVE</span>' : ''}
+                                </div>
+                                <div class="text-[10px] text-slate-400 mt-1 font-mono">${m.nodes.length} nodes • Created ${m.createdAt} • Modified ${m.modifiedAt}</div>
+                            </div>
+                            <div class="flex items-center gap-1 shrink-0">
+                                <button data-act="open" data-id="${m.id}" class="px-2 py-1 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-semibold">Open</button>
+                                <button data-act="rename" data-id="${m.id}" class="p-1 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700" title="Rename"><i data-lucide="pencil" class="w-3 h-3"></i></button>
+                                <button data-act="delete" data-id="${m.id}" class="p-1 rounded-md text-rose-500 hover:bg-rose-500/10" title="Move to bin"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+                            </div>
+                        </div>`;
+                    row.querySelectorAll('button[data-act]').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const id = btn.dataset.id, act = btn.dataset.act;
+                            if (act === 'open') { App.switchMap(id); Utils.hideModal('mapManagerModal'); }
+                            else if (act === 'rename') App.renameMap(id);
+                            else if (act === 'delete') {
+                                if (State.activeMapId !== id) App.switchMap(id);
+                                App.deleteCurrentMap();
+                                UI.openMapManagerModal();
+                            }
+                        });
+                    });
+                    list.appendChild(row);
+                });
+
+                const rlist = Utils.$('restoreList');
+                rlist.innerHTML = '';
+                Utils.$('trashCount').textContent = State.trash.length;
+                if (!State.trash.length) {
+                    rlist.innerHTML = '<div class="text-xs text-slate-400 italic py-3 text-center">Restore bin is empty.</div>';
+                } else {
+                    State.trash.forEach(item => {
+                        const row = document.createElement('div');
+                        row.className = 'p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2';
+                        const label = item.itemType === 'MAP' ? `🗂️ ${item.data.title}` : `🔹 ${item.data.title} (${item.mapTitle || 'Map'})`;
+                        const sub = item.itemType === 'NODE' && item.subtree ? `+${item.subtree.length - 1} descendant(s)` : '';
+                        row.innerHTML = `
+                            <div class="min-w-0 flex-1">
+                                <div class="text-xs font-semibold truncate">${Utils.esc(label)}</div>
+                                <div class="text-[10px] text-slate-400 font-mono">${Utils.esc(item.deletedAt)} ${sub ? '• ' + sub : ''}</div>
+                            </div>
+                            <div class="flex gap-1 shrink-0">
+                                <button data-r="restore" data-id="${item.trashId}" class="px-2 py-1 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-semibold">♻️</button>
+                                <button data-r="purge" data-id="${item.trashId}" class="px-2 py-1 rounded-md text-rose-500 hover:bg-rose-500/10 text-[10px] font-semibold">✕</button>
+                            </div>`;
+                        row.querySelectorAll('button[data-r]').forEach(b => {
+                            b.addEventListener('click', () => {
+                                if (b.dataset.r === 'restore') App.restoreTrashItem(b.dataset.id);
+                                else App.purgeTrashItem(b.dataset.id);
+                            });
+                        });
+                        rlist.appendChild(row);
+                    });
+                }
+                if (window.lucide) lucide.createIcons();
+                Utils.showModal('mapManagerModal');
+            },
+            openDefaultColorsModal: () => {
+                const form = Utils.$('defaultColorsForm');
+                form.innerHTML = '';
+                Object.keys(Config.DEFAULT_STATUS_COLORS).forEach(status => {
+                    const cur = State.statusColors[status] || Config.DEFAULT_STATUS_COLORS[status];
+                    const row = document.createElement('div');
+                    row.className = 'flex items-center justify-between p-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700';
+                    row.innerHTML = `
+                        <strong class="text-sm">${status}</strong>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-slate-400 font-mono">${cur}</span>
+                            <input type="color" value="${cur}" class="w-10 h-7 rounded cursor-pointer" />
+                        </div>`;
+                    row.querySelector('input').addEventListener('input', (e) => {
+                        State.statusColors[status] = e.target.value;
+                        row.querySelector('span').textContent = e.target.value;
+                        Storage.save();
+                    });
+                    form.appendChild(row);
+                });
+                Utils.showModal('defaultColorsModal');
+            }
+        };
+
+        /* ====================================================================
+         * MODULE 8: APPLICATION ACTIONS & CRUD
+         * ==================================================================== */
+			const App = {
+            init: async () => {
+                const loaded = await Storage.loadAsync();
+                if (loaded) Object.assign(State, loaded);
+
+                if (!State.maps || !State.maps.length) {
+                    const sample = App.createSampleMap();
+                    State.maps = [sample];
+                    State.activeMapId = sample.id;
+                    State.openTabIds = [sample.id];
+                    State.selectedNodeId = sample.nodes[0].id;
+                    State.selectedNodeIds = [sample.nodes[0].id];
+                }
+                if (!State.openTabIds || !State.openTabIds.length) State.openTabIds = State.maps.map(m => m.id);
+                if (!State.activeMapId || !State.maps.some(m => m.id === State.activeMapId)) State.activeMapId = State.openTabIds[0] || State.maps[0].id;
+
+                const isDark = State.isDark !== false;
+                document.documentElement.classList.toggle('dark', isDark);
+                const vp = Utils.$('canvasViewport');
+                vp.classList.toggle('canvas-grid-dark', isDark);
+                vp.classList.toggle('canvas-grid-light', !isDark);
+
+                const map = App.getActiveMap();
+                if (!State.selectedNodeId || !map.nodes.some(n => n.id === State.selectedNodeId)) {
+                    State.selectedNodeId = map.nodes[0]?.id || null;
+                }
+                State.selectedNodeIds = State.selectedNodeId ? [State.selectedNodeId] : [];
+
+                UI.populateLanguages();
+                UI.renderFixedColorSwatches();
+                Events.bind();
+                if (window.lucide) lucide.createIcons();
+
+                UI.updateLayoutButtons(map.layout || 'tree');
+                UI.renderAll();
+                UI.updateWorldTransform();
+                Cloud.loadSavedConfigs();
+                UI.updateTrashBadge();
+
+                if (State.selectedNodeId) UI.openInspector(State.selectedNodeId);
+            },
+            getActiveMap: () => State.maps.find(m => m.id === State.activeMapId) || State.maps[0],
+            getSelectedNode: () => {
+                const map = App.getActiveMap();
+                return map ? map.nodes.find(n => n.id === State.selectedNodeId) : null;
+            },
+            touchActiveMap: () => {
+                const m = App.getActiveMap();
+                if (m) m.modifiedAt = Utils.now();
+            },
+            createSampleMap: () => {
+                const now = Utils.now();
+                const git0 = [{ type: 'feat', msg: 'Initialized project root', time: now }];
+                return {
+                    id: 'map_' + Date.now(),
+                    title: 'Smart IoT & AI Project Flow',
+                    layout: 'tree', createdAt: now, modifiedAt: now,
+                    nodes: [
+                        { id: 'root', parentId: null, title: 'Smart Agri-Monitor System • வேளாண் திட்டம்', status: 'In Progress', color: '#6366f1', x: 120, y: 320, locked: false, createdAt: now, modifiedAt: now, notes: '### Core Vision\nBuild an **offline-resilient soil & micro-climate telemetry system** with cloud sync.\n\n- Edge node on ESP32\n- Real-time moisture & NPK analytics\n- Bilingual farmer dashboard', codeLang: 'JavaScript', code: 'const sensorPacket = {\n  deviceId: "NODE_ERODE_01",\n  soilMoisture: 42.8,\n  tempC: 29.4,\n  timestamp: Date.now()\n};', image: '', gitLogs: git0 },
+                        { id: 'node-hw', parentId: 'root', title: '1. Hardware & Sensors (வன்பொருள்)', status: 'Hardware', color: '#a855f7', x: 460, y: 140, locked: false, createdAt: now, modifiedAt: now, notes: '### Components List\n- **MCU:** ESP32-S3 DevKit\n- **Soil Sensor:** Capacitive v2.0\n- **Power:** 18650 Li-Ion + 5W Solar Panel', codeLang: 'Arduino / ESP', code: '#include <Arduino.h>\n#define SOIL_PIN 34\nvoid setup() { Serial.begin(115200); pinMode(SOIL_PIN, INPUT); }\nvoid loop() {\n  int raw = analogRead(SOIL_PIN);\n  Serial.printf("Raw: %d\\n", raw);\n  delay(2000);\n}', image: '', gitLogs: git0 },
+                        { id: 'node-code', parentId: 'root', title: '2. Cloud & Sync Architecture', status: 'Code', color: '#3b82f6', x: 460, y: 340, locked: false, createdAt: now, modifiedAt: now, notes: '### Dual Storage Strategy\n1. **Local Edge Buffer:** SPIFFS when Wi-Fi drops.\n2. **Firestore:** Live status sync.\n3. **Drive:** JSON archive.', codeLang: 'Python', code: 'def irrigation_seconds(moisture_pct, temp_c):\n    if moisture_pct < 30.0:\n        factor = 1.2 if temp_c > 32 else 1.0\n        return int((35.0 - moisture_pct) * 15 * factor)\n    return 0', image: '', gitLogs: git0 },
+                        { id: 'node-ui', parentId: 'root', title: '3. Field Testing & Milestones', status: 'Done', color: '#22c55e', x: 460, y: 530, locked: false, createdAt: now, modifiedAt: now, notes: '### Completed Verification\n- [x] Waterproof IP65 enclosure tested\n- [x] Deep-sleep current `48 µA`', codeLang: 'Bash / Termux', code: 'pio run --target upload && pio device monitor -b 115200', image: '', gitLogs: git0 }
+                    ]
+                };
+            },
+            centerMap: (animate = true) => {
+                const map = App.getActiveMap();
+                if (!map || !map.nodes.length) return;
+                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                map.nodes.forEach(n => {
+                    minX = Math.min(minX, n.x); minY = Math.min(minY, n.y);
+                    maxX = Math.max(maxX, n.x + 260); maxY = Math.max(maxY, n.y + 100);
+                });
+                const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+                const rect = Utils.$('canvasViewport').getBoundingClientRect();
+                State.viewport.scale = 1;
+                State.viewport.x = rect.width / 2 - cx;
+                State.viewport.y = rect.height / 2 - cy;
+                const world = Utils.$('canvasWorld');
+                if (animate) {
+                    world.style.transition = 'transform .3s ease-out';
+                    setTimeout(() => world.style.transition = '', 320);
+                }
+                UI.updateWorldTransform();
+                Storage.save();
+            },
+            addChildNode: (parentId) => {
+                const map = App.getActiveMap();
+                if (!map) return;
+                const parent = map.nodes.find(n => n.id === parentId) || map.nodes[0];
+                if (!parent) return;
+                const now = Utils.now();
+                const newId = 'node_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+                const defaultColor = State.statusColors['Idea'] || '#eab308';
+                const newNode = {
+                    id: newId, parentId: parent.id, title: 'New Idea • புதிய குறிப்பு',
+                    status: 'Idea', color: parent.parentId ? (parent.color || defaultColor) : defaultColor,
+                    x: parent.x + 320, y: parent.y + (Math.random() * 120 - 60),
+                    locked: false, createdAt: now, modifiedAt: now,
+                    notes: '', codeLang: 'JavaScript', code: '', image: '',
+                    gitLogs: [{ type: 'feat', msg: 'Node created', time: now }]
+                };
+                map.nodes.push(newNode);
+                map.modifiedAt = now;
+                State.selectedNodeId = newId;
+                State.selectedNodeIds = [newId];
+
+                if (map.layout !== 'freeform') Layout.apply(map.layout, true);
+                else { UI.renderAll(); Storage.save(); }
+                UI.openInspector(newId);
+                Utils.toast('Child node added', 'success');
+            },
+            addSiblingNode: (nodeId) => {
+                const map = App.getActiveMap();
+                if (!map) return;
+                const cur = map.nodes.find(n => n.id === nodeId);
+                if (!cur) return;
+                if (!cur.parentId) { App.addChildNode(cur.id); return; }
+                App.addChildNode(cur.parentId);
+            },
+            deleteSelectedNodes: () => {
+                const map = App.getActiveMap();
+                if (!map) return;
+                const targets = State.selectedNodeIds.length ? [...State.selectedNodeIds] : (State.selectedNodeId ? [State.selectedNodeId] : []);
+                if (!targets.length) return;
+
+                let movedCount = 0;
+                let fallbackParentId = null;
+
+                targets.forEach(nodeId => {
+                    const target = map.nodes.find(n => n.id === nodeId);
+                    if (!target) return;
+                    if (!target.parentId) {
+                        Utils.toast('Cannot delete root node!', 'error');
+                        return;
+                    }
+                    fallbackParentId = target.parentId;
+                    const toDelete = new Set([nodeId]);
+                    let added = true;
+                    while (added) {
+                        added = false;
+                        map.nodes.forEach(n => {
+                            if (n.parentId && toDelete.has(n.parentId) && !toDelete.has(n.id)) {
+                                toDelete.add(n.id); added = true;
+                            }
+                        });
+                    }
+                    const deletedNodes = map.nodes.filter(n => toDelete.has(n.id));
+                    State.trash.unshift({
+                        trashId: 'tr_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+                        itemType: 'NODE', mapId: map.id, mapTitle: map.title,
+                        deletedAt: Utils.now(),
+                        data: JSON.parse(JSON.stringify(target)),
+                        subtree: JSON.parse(JSON.stringify(deletedNodes))
+                    });
+                    map.nodes = map.nodes.filter(n => !toDelete.has(n.id));
+                    movedCount++;
+                });
+
+                if (movedCount > 0) {
+                    map.modifiedAt = Utils.now();
+                    State.selectedNodeId = fallbackParentId && map.nodes.some(n => n.id === fallbackParentId) ? fallbackParentId : (map.nodes[0]?.id || null);
+                    State.selectedNodeIds = State.selectedNodeId ? [State.selectedNodeId] : [];
+                    UI.closeInspector();
+                    if (map.layout !== 'freeform') Layout.apply(map.layout, true);
+                    else { UI.renderAll(); Storage.save(); }
+                    UI.updateTrashBadge();
+                    Utils.toast(`Moved ${movedCount} branch(es) to Restore Bin`, 'info');
+                }
+            },
+            toggleLockSelected: () => {
+                const map = App.getActiveMap();
+                const targets = State.selectedNodeIds.length ? State.selectedNodeIds : (State.selectedNodeId ? [State.selectedNodeId] : []);
+                if (!map || !targets.length) { Utils.toast('Select node(s) first', 'error'); return; }
+                const allLocked = targets.every(id => map.nodes.find(n => n.id === id)?.locked);
+                const nextState = !allLocked;
+                targets.forEach(id => {
+                    const n = map.nodes.find(x => x.id === id);
+                    if (n) { n.locked = nextState; n.modifiedAt = Utils.now(); }
+                });
+                Storage.save();
+                UI.renderAll();
+                if (State.selectedNodeId) UI.openInspector(State.selectedNodeId);
+                Utils.toast(nextState ? 'Node(s) Locked' : 'Node(s) Unlocked', 'success');
+            },
+            updateSelectedNode: (field, value) => {
+                const node = App.getSelectedNode();
+                if (!node) return;
+                node[field] = value;
+                if (field !== 'x' && field !== 'y') {
+                    node.modifiedAt = Utils.now();
+                    Utils.$('nodeModifiedAt').textContent = node.modifiedAt;
+                    App.touchActiveMap();
+                }
+                if (field === 'status' && State.statusColors[value]) {
+                    node.color = State.statusColors[value];
+                    Utils.$('inspectorColorDot').style.backgroundColor = node.color;
+                    document.querySelectorAll('#colorPalettePicker button').forEach(b => {
+                        const match = b.dataset.hex === node.color;
+                        b.classList.toggle('ring-2', match);
+                        b.classList.toggle('ring-white', match);
+                    });
+                }
+                UI.renderAll();
+                // Notes அல்லது Image மாறும்போது Tree/Radial இடைவெளியை தானாக சரிசெய்யும்
+                const map = App.getActiveMap();
+                if ((field === 'notes' || field === 'image') && map && map.layout !== 'freeform') {
+                    requestAnimationFrame(() => Layout.apply(map.layout, false));
+                }
+                Storage.save();
+            },
+            addManualLanguage: () => {
+                const custom = prompt('Add Program / Language Name:', 'Rust');
+                if (!custom || !custom.trim()) return;
+                const clean = custom.trim();
+                if (!State.languages.includes(clean)) State.languages.push(clean);
+                UI.populateLanguages();
+                Utils.$('nodeCodeLangSelect').value = clean;
+                App.updateSelectedNode('codeLang', clean);
+                Utils.toast('Language added', 'success');
+            },
+            addGitCommit: () => {
+                const node = App.getSelectedNode();
+                if (!node) return;
+                const msgInput = Utils.$('gitCommitMsg');
+                const msg = msgInput.value.trim();
+                if (!msg) { Utils.toast('Enter a commit message', 'error'); return; }
+                const type = Utils.$('gitCommitType').value;
+                const now = Utils.now();
+                if (!node.gitLogs) node.gitLogs = [];
+                node.gitLogs.unshift({ type, msg, time: now });
+                node.modifiedAt = now;
+                App.touchActiveMap();
+                msgInput.value = '';
+                Utils.$('nodeModifiedAt').textContent = now;
+                Storage.save();
+                UI.renderGitHistory(node);
+                UI.renderNodes();
+                Utils.toast('Commit recorded', 'success');
+            },
+            compressAndAttachImage: (file) => {
+                if (!file || !file.type.startsWith('image/')) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX = 800;
+                        let w = img.width, h = img.height;
+                        if (w > MAX || h > MAX) {
+                            if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+                            else { w = Math.round(w * MAX / h); h = MAX; }
+                        }
+                        canvas.width = w; canvas.height = h;
+                        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
+                        Utils.$('nodeImageUrlInput').value = dataUrl;
+                        UI.updateImagePreview(dataUrl);
+                        App.updateSelectedNode('image', dataUrl);
+                        Utils.toast('Image attached & compressed', 'success');
+                    };
+                    img.src = ev.target.result;
+                };
+                reader.readAsDataURL(file);
+            },
+            createNewMap: () => {
+                const title = prompt('Enter New Map Name / புதிய வரைபடத்தின் பெயர்:', `Project Flow ${State.maps.length + 1}`);
+                if (!title || !title.trim()) return;
+                const now = Utils.now();
+                const defaultColor = State.statusColors['Idea'] || '#eab308';
+                const mapId = 'map_' + Date.now();
+                const rootId = 'node_' + Date.now() + '_root';
+                const newMap = {
+                    id: mapId, title: title.trim(), layout: 'tree',
+                    createdAt: now, modifiedAt: now,
+                    nodes: [{
+                        id: rootId, parentId: null, title: title.trim(),
+                        status: 'Idea', color: defaultColor,
+                        x: 220, y: 180, locked: false,
+                        createdAt: now, modifiedAt: now,
+                        notes: '', codeLang: 'JavaScript', code: '', image: '',
+                        gitLogs: [{ type: 'feat', msg: 'Initialized map root', time: now }]
+                    }]
+                };
+                State.maps.push(newMap);
+                if (!State.openTabIds.includes(mapId)) State.openTabIds.push(mapId);
+                State.activeMapId = mapId;
+                State.selectedNodeId = rootId;
+                State.selectedNodeIds = [rootId];
+                UI.closeInspector();
+                UI.updateLayoutButtons('tree');
+                Storage.save();
+                UI.renderAll();
+                App.centerMap(true);
+                Utils.toast('New map created', 'success');
+            },
+            switchMap: (mapId) => {
+                if (!State.maps.some(m => m.id === mapId)) return;
+                if (!State.openTabIds.includes(mapId)) State.openTabIds.push(mapId);
+                State.activeMapId = mapId;
+                const map = App.getActiveMap();
+                State.selectedNodeId = map.nodes[0]?.id || null;
+                State.selectedNodeIds = State.selectedNodeId ? [State.selectedNodeId] : [];
+                UI.closeInspector();
+                UI.updateLayoutButtons(map.layout || 'tree');
+                UI.renderAll();
+                Storage.save();
+                App.centerMap(true);
+            },
+            closeMapTab: (mapId) => {
+                if (State.openTabIds.length <= 1) { Utils.toast('At least 1 tab must stay open.', 'error'); return; }
+                State.openTabIds = State.openTabIds.filter(id => id !== mapId);
+                if (State.activeMapId === mapId) {
+                    App.switchMap(State.openTabIds[0]);
+                } else {
+                    UI.renderAll();
+                    Storage.save();
+                }
+                Utils.toast('Tab closed (saved in All Maps)', 'info');
+            },
+            deleteCurrentMap: () => {
+                if (State.maps.length <= 1) { Utils.toast('At least one map must remain.', 'error'); return; }
+                const map = App.getActiveMap();
+                if (!confirm(`Move "${map.title}" to Restore Bin?`)) return;
+                State.trash.unshift({
+                    trashId: 'tr_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+                    itemType: 'MAP', deletedAt: Utils.now(),
+                    data: JSON.parse(JSON.stringify(map))
+                });
+                State.maps = State.maps.filter(m => m.id !== map.id);
+                State.openTabIds = State.openTabIds.filter(id => id !== map.id);
+                if (!State.openTabIds.length) State.openTabIds.push(State.maps[0].id);
+                App.switchMap(State.openTabIds[0]);
+                UI.updateTrashBadge();
+                Utils.toast('Map moved to Restore Bin', 'info');
+            },
+            renameMap: (mapId) => {
+                const m = State.maps.find(x => x.id === mapId);
+                if (!m) return;
+                const name = prompt('Rename Map:', m.title);
+                if (name && name.trim()) {
+                    m.title = name.trim();
+                    m.modifiedAt = Utils.now();
+                    if (m.id === State.activeMapId) Utils.$('mapTitleInput').value = m.title;
+                    Storage.save();
+                    UI.renderAll();
+                    UI.openMapManagerModal();
+                }
+            },
+            restoreTrashItem: (trashId) => {
+                const idx = State.trash.findIndex(t => t.trashId === trashId);
+                if (idx === -1) return;
+                const item = State.trash[idx];
+                const now = Utils.now();
+
+                if (item.itemType === 'MAP') {
+                    item.data.modifiedAt = now;
+                    State.maps.push(item.data);
+                    if (!State.openTabIds.includes(item.data.id)) State.openTabIds.push(item.data.id);
+                    State.activeMapId = item.data.id;
+                } else if (item.itemType === 'NODE') {
+                    const targetMap = State.maps.find(m => m.id === item.mapId) || App.getActiveMap();
+                    const subtree = item.subtree || [item.data];
+                    const rootNode = subtree.find(n => n.id === item.data.id) || item.data;
+                    if (rootNode.parentId && !targetMap.nodes.some(n => n.id === rootNode.parentId)) {
+                        rootNode.parentId = targetMap.nodes[0]?.id || null;
+                    }
+                    subtree.forEach(n => {
+                        n.modifiedAt = now;
+                        if (!targetMap.nodes.some(e => e.id === n.id)) targetMap.nodes.push(n);
+                    });
+                    targetMap.modifiedAt = now;
+                    if (!State.openTabIds.includes(targetMap.id)) State.openTabIds.push(targetMap.id);
+                    State.activeMapId = targetMap.id;
+                    State.selectedNodeId = rootNode.id;
+                    State.selectedNodeIds = [rootNode.id];
+                }
+
+                State.trash.splice(idx, 1);
+                Storage.save();
+                UI.renderAll();
+                UI.openMapManagerModal();
+                UI.updateTrashBadge();
+                Utils.toast('Restored!', 'success');
+            },
+            purgeTrashItem: (trashId) => {
+                State.trash = State.trash.filter(t => t.trashId !== trashId);
+                Storage.save();
+                UI.openMapManagerModal();
+                UI.updateTrashBadge();
+            },
+            clearAllTrash: () => {
+                if (!State.trash.length) return;
+                if (!confirm(`Permanently delete all ${State.trash.length} items?`)) return;
+                State.trash = [];
+                Storage.save();
+                UI.openMapManagerModal();
+                UI.updateTrashBadge();
+                Utils.toast('Restore bin emptied', 'info');
+            }
+        };
+
+        /* ====================================================================
+         * MODULE 9: CLOUD SYNC (JSON, FIREBASE FIRESTORE, GOOGLE DRIVE)
+         * ==================================================================== */
+        const Cloud = {
+            loadSavedConfigs: () => {
+                try {
+                    const saved = JSON.parse(localStorage.getItem(Config.CLOUD_CFG_KEY) || '{}');
+                    if (saved.firebaseConfig) Utils.$('firebaseConfigInput').value = saved.firebaseConfig;
+                    if (saved.gdriveClientId) Utils.$('gdriveClientIdInput').value = saved.gdriveClientId;
+                } catch (e) {}
+            },
+            saveConfigField: (key, val) => {
+                try {
+                    const saved = JSON.parse(localStorage.getItem(Config.CLOUD_CFG_KEY) || '{}');
+                    saved[key] = val;
+                    localStorage.setItem(Config.CLOUD_CFG_KEY, JSON.stringify(saved));
+                } catch (e) {}
+            },
+            exportJson: () => {
+                const payload = {
+                    version: 'v6-modular',
+                    exportedAt: new Date().toISOString(),
+                    maps: State.maps, activeMapId: State.activeMapId, openTabIds: State.openTabIds,
+                    trash: State.trash, statusColors: State.statusColors, languages: State.languages
+                };
+                const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `thinking-flow-backup-${new Date().toISOString().slice(0, 10)}.json`;
+                a.click();
+                URL.revokeObjectURL(a.href);
+                Utils.toast('Exported full JSON backup', 'success');
+            },
+            importJson: (file) => {
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        const normalized = (data.maps && Array.isArray(data.maps))
+                            ? Storage.normalize(data)
+                            : Storage.migrateV1(data);
+                        Object.assign(State, normalized);
+                        State.selectedNodeId = App.getActiveMap().nodes[0]?.id || null;
+                        State.selectedNodeIds = State.selectedNodeId ? [State.selectedNodeId] : [];
+                        UI.populateLanguages();
+                        UI.updateLayoutButtons(App.getActiveMap().layout || 'tree');
+                        UI.renderAll();
+                        App.centerMap(true);
+                        Storage.save();
+                        UI.updateTrashBadge();
+                        Utils.hideModal('syncModal');
+                        Utils.toast('Backup imported successfully!', 'success');
+                    } catch (err) {
+                        Utils.toast('Invalid JSON file: ' + err.message, 'error');
+                    }
+                };
+                reader.readAsText(file);
+            },
+            connectFirebase: async () => {
+                const raw = Utils.$('firebaseConfigInput').value.trim();
+                const statusEl = Utils.$('firebaseStatusText');
+                if (!raw) { Utils.toast('Paste your Firebase Config JSON first', 'error'); return; }
+                try {
+                    const cfg = JSON.parse(raw);
+                    Cloud.saveConfigField('firebaseConfig', raw);
+                    if (!firebase.apps.length) State.firebaseApp = firebase.initializeApp(cfg);
+                    else State.firebaseApp = firebase.app();
+
+                    const provider = new firebase.auth.GoogleAuthProvider();
+                    const res = await firebase.auth().signInWithPopup(provider);
+                    State.firebaseUser = res.user;
+
+                    if (res.user.photoURL) {
+                        Utils.$('userAvatar').src = res.user.photoURL;
+                        Utils.$('userAvatar').classList.remove('hidden');
+                        Utils.$('userIcon').classList.add('hidden');
+                    }
+                    statusEl.textContent = `Connected as ${res.user.email} ✅`;
+                    statusEl.className = 'text-xs text-emerald-500 font-semibold';
+                    Utils.$('pushFirebaseBtn').disabled = false;
+                    Utils.$('pullFirebaseBtn').disabled = false;
+                    Utils.toast('Signed in to Firebase!', 'success');
+                } catch (err) {
+                    statusEl.textContent = `Error: ${err.message}`;
+                    statusEl.className = 'text-xs text-rose-500';
+                    Utils.toast('Firebase connection failed', 'error');
+                }
+            },
+            pushFirestore: async () => {
+                if (!State.firebaseUser) return;
+                const statusEl = Utils.$('firebaseStatusText');
+                try {
+                    statusEl.textContent = 'Uploading to Firestore...';
+                    const db = firebase.firestore();
+                    await db.collection('mindmaps').doc(State.firebaseUser.uid).set({
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        state: {
+                            maps: State.maps, activeMapId: State.activeMapId, openTabIds: State.openTabIds,
+                            trash: State.trash, statusColors: State.statusColors, languages: State.languages
+                        }
+                    });
+                    statusEl.textContent = `Synced at ${new Date().toLocaleTimeString()} ✅`;
+                    Utils.toast('Saved to Firestore!', 'success');
+                } catch (err) {
+                    statusEl.textContent = `Error: ${err.message}`;
+                    Utils.toast('Firestore write failed. Check rules.', 'error');
+                }
+            },
+            pullFirestore: async () => {
+                if (!State.firebaseUser) return;
+                const statusEl = Utils.$('firebaseStatusText');
+                try {
+                    statusEl.textContent = 'Fetching from Firestore...';
+                    const db = firebase.firestore();
+                    const doc = await db.collection('mindmaps').doc(State.firebaseUser.uid).get();
+                    if (!doc.exists || !doc.data().state) { Utils.toast('No cloud backup found', 'info'); return; }
+                    const normalized = Storage.normalize(doc.data().state);
+                    Object.assign(State, normalized);
+                    State.selectedNodeId = App.getActiveMap().nodes[0]?.id || null;
+                    State.selectedNodeIds = State.selectedNodeId ? [State.selectedNodeId] : [];
+                    UI.populateLanguages();
+                    UI.updateLayoutButtons(App.getActiveMap().layout || 'tree');
+                    UI.renderAll();
+                    App.centerMap(true);
+                    Storage.save();
+                    UI.updateTrashBadge();
+                    statusEl.textContent = 'Loaded latest from Firestore ✅';
+                    Utils.toast('Pulled from Firebase!', 'success');
+                } catch (err) {
+                    statusEl.textContent = `Error: ${err.message}`;
+                    Utils.toast('Firestore pull failed', 'error');
+                }
+            },
+            authorizeDrive: () => {
+                const cid = Utils.$('gdriveClientIdInput').value.trim();
+                const statusEl = Utils.$('gdriveStatusText');
+                if (!cid) { Utils.toast('Enter OAuth Client ID first', 'error'); return; }
+                Cloud.saveConfigField('gdriveClientId', cid);
+                if (!window.google || !google.accounts || !google.accounts.oauth2) {
+                    Utils.toast('Google Identity script still loading, try again', 'error');
+                    return;
+                }
+                const tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: cid,
+                    scope: 'https://www.googleapis.com/auth/drive.file',
+                    callback: (resp) => {
+                        if (resp && resp.access_token) {
+                            State.gdriveAccessToken = resp.access_token;
+                            statusEl.textContent = 'Drive authorized ✅ (Ready to sync MindMap_Flows)';
+                            statusEl.className = 'text-xs text-emerald-500 font-semibold';
+                            Utils.$('saveToGdriveBtn').disabled = false;
+                            Utils.$('loadFromGdriveBtn').disabled = false;
+                            Utils.toast('Google Drive connected!', 'success');
+                        }
+                    }
+                });
+                tokenClient.requestAccessToken({ prompt: 'consent' });
+            },
+            getOrCreateDriveFolder: async (name = 'MindMap_Flows') => {
+                const q = encodeURIComponent(`name='${name}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+                const r = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`, {
+                    headers: { Authorization: `Bearer ${State.gdriveAccessToken}` }
+                });
+                const d = await r.json();
+                if (d.files && d.files.length) return d.files[0].id;
+                const c = await fetch('https://www.googleapis.com/drive/v3/files', {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${State.gdriveAccessToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, mimeType: 'application/vnd.google-apps.folder' })
+                });
+                const folder = await c.json();
+                return folder.id;
+            },
+            saveToDrive: async () => {
+                if (!State.gdriveAccessToken) return;
+                const statusEl = Utils.$('gdriveStatusText');
+                try {
+                    statusEl.textContent = 'Saving to Google Drive...';
+                    const folderId = await Cloud.getOrCreateDriveFolder();
+                    const fileName = `thinking-flow-${new Date().toISOString().slice(0, 10)}.json`;
+                    const payload = {
+                        maps: State.maps, activeMapId: State.activeMapId, openTabIds: State.openTabIds,
+                        trash: State.trash, statusColors: State.statusColors, languages: State.languages
+                    };
+                    const form = new FormData();
+                    form.append('metadata', new Blob([JSON.stringify({ name: fileName, mimeType: 'application/json', parents: [folderId] })], { type: 'application/json' }));
+                    form.append('file', new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
+                    const r = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                        method: 'POST', headers: { Authorization: `Bearer ${State.gdriveAccessToken}` }, body: form
+                    });
+                    if (!r.ok) throw new Error('Upload failed');
+                    statusEl.textContent = `Saved "${fileName}" to MindMap_Flows ✅`;
+                    Utils.toast('Saved to Google Drive!', 'success');
+                } catch (err) {
+                    statusEl.textContent = `Error: ${err.message}`;
+                    Utils.toast('Drive save failed', 'error');
+                }
+            },
+            loadFromDrive: async () => {
+                if (!State.gdriveAccessToken) return;
+                const statusEl = Utils.$('gdriveStatusText');
+                try {
+                    statusEl.textContent = 'Searching MindMap_Flows...';
+                    const folderId = await Cloud.getOrCreateDriveFolder();
+                    const q = encodeURIComponent(`'${folderId}' in parents and mimeType='application/json' and trashed=false`);
+                    const list = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&orderBy=modifiedTime desc&pageSize=1&fields=files(id,name)`, {
+                        headers: { Authorization: `Bearer ${State.gdriveAccessToken}` }
+                    });
+                    const ld = await list.json();
+                    if (!ld.files || !ld.files.length) { Utils.toast('No backups found in MindMap_Flows', 'info'); return; }
+                    const file = ld.files[0];
+                    const fr = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`, {
+                        headers: { Authorization: `Bearer ${State.gdriveAccessToken}` }
+                    });
+                    const data = await fr.json();
+                    const normalized = Storage.normalize(data);
+                    Object.assign(State, normalized);
+                    State.selectedNodeId = App.getActiveMap().nodes[0]?.id || null;
+                    State.selectedNodeIds = State.selectedNodeId ? [State.selectedNodeId] : [];
+                    UI.populateLanguages();
+                    UI.updateLayoutButtons(App.getActiveMap().layout || 'tree');
+                    UI.renderAll();
+                    App.centerMap(true);
+                    Storage.save();
+                    UI.updateTrashBadge();
+                    statusEl.textContent = `Loaded "${file.name}" ✅`;
+                    Utils.toast('Loaded from Google Drive!', 'success');
+                } catch (err) {
+                    statusEl.textContent = `Error: ${err.message}`;
+                    Utils.toast('Drive load failed', 'error');
+                }
+            }
+        };
+
+        /* ====================================================================
+         * MODULE 10: EVENT LISTENERS & CANVAS INTERACTION
+         * ==================================================================== */
+        const Events = {
+            handleNodePointerDown: (e, nodeId) => {
+                e.stopPropagation();
+
+                if (e.shiftKey) {
+                    if (State.selectedNodeIds.includes(nodeId)) {
+                        State.selectedNodeIds = State.selectedNodeIds.filter(id => id !== nodeId);
+                    } else {
+                        State.selectedNodeIds.push(nodeId);
+                    }
+                    State.selectedNodeId = nodeId;
+                    UI.renderNodes();
+                    return;
+                }
+
+                if (!State.selectedNodeIds.includes(nodeId)) {
+                    State.selectedNodeIds = [nodeId];
+                }
+                State.selectedNodeId = nodeId;
+
+                const map = App.getActiveMap();
+                const node = map.nodes.find(n => n.id === nodeId);
+                if (!node) return;
+
+                if (node.locked) {
+                    UI.openInspector(nodeId);
+                    return;
+                }
+
+                State.draggedNodeId = nodeId;
+                State.hasDraggedMoved = false;
+                State.dragOffset = {
+                    x: (e.clientX - State.viewport.x) / State.viewport.scale - node.x,
+                    y: (e.clientY - State.viewport.y) / State.viewport.scale - node.y
+                };
+                UI.renderNodes();
+            },
+            bind: () => {
+                const vp = Utils.$('canvasViewport');
+                const selBox = Utils.$('selectionBox');
+
+                // Map Title Rename
+                Utils.$('mapTitleInput').addEventListener('input', (e) => {
+                    const m = App.getActiveMap();
+                    if (m) { m.title = e.target.value; m.modifiedAt = Utils.now(); UI.renderMapTabs(); Storage.save(); }
+                });
+
+                // Canvas Pan & Multi-Select Box
+                vp.addEventListener('pointerdown', (e) => {
+                    if (e.target.closest('.mind-node')) return;
+
+                    if (e.shiftKey || State.isBoxSelectMode) {
+                        State.isSelecting = true;
+                        const rect = vp.getBoundingClientRect();
+                        State.selectionBox = {
+                            startX: e.clientX - rect.left, startY: e.clientY - rect.top,
+                            endX: e.clientX - rect.left, endY: e.clientY - rect.top
+                        };
+                        selBox.style.display = 'block';
+                        selBox.style.left = State.selectionBox.startX + 'px';
+                        selBox.style.top = State.selectionBox.startY + 'px';
+                        selBox.style.width = '0px';
+                        selBox.style.height = '0px';
+                    } else {
+                        State.isPanning = true;
+                        State.panStart = { x: e.clientX - State.viewport.x, y: e.clientY - State.viewport.y };
+                        if (State.selectedNodeIds.length > 1) {
+                            State.selectedNodeIds = State.selectedNodeId ? [State.selectedNodeId] : [];
+                            UI.renderNodes();
+                        }
+                    }
+                });
+
+                window.addEventListener('pointermove', (e) => {
+                    if (State.draggedNodeId) {
+                        State.hasDraggedMoved = true;
+                        const map = App.getActiveMap();
+                        const node = map.nodes.find(n => n.id === State.draggedNodeId);
+                        if (node && !node.locked) {
+                            const nx = (e.clientX - State.viewport.x) / State.viewport.scale - State.dragOffset.x;
+                            const ny = (e.clientY - State.viewport.y) / State.viewport.scale - State.dragOffset.y;
+                            const dx = nx - node.x, dy = ny - node.y;
+
+                            map.nodes.forEach(n => {
+                                if (State.selectedNodeIds.includes(n.id) && !n.locked) {
+                                    n.x += dx; n.y += dy;
+                                    const el = Utils.$('nodesLayer').querySelector(`[data-id="${n.id}"]`);
+                                    if (el) el.style.transform = `translate(${n.x}px, ${n.y}px)`;
+                                }
+                            });
+                            if (map.layout !== 'freeform') {
+                                map.layout = 'freeform';
+                                UI.updateLayoutButtons('freeform');
+                            }
+                            requestAnimationFrame(() => UI.renderConnections());
+                        }
+                    } else if (State.isPanning) {
+                        State.viewport.x = e.clientX - State.panStart.x;
+                        State.viewport.y = e.clientY - State.panStart.y;
+                        UI.updateWorldTransform();
+                    } else if (State.isSelecting) {
+                        const rect = vp.getBoundingClientRect();
+                        State.selectionBox.endX = e.clientX - rect.left;
+                        State.selectionBox.endY = e.clientY - rect.top;
+                        const left = Math.min(State.selectionBox.startX, State.selectionBox.endX);
+                        const top = Math.min(State.selectionBox.startY, State.selectionBox.endY);
+                        selBox.style.left = left + 'px';
+                        selBox.style.top = top + 'px';
+                        selBox.style.width = Math.abs(State.selectionBox.endX - State.selectionBox.startX) + 'px';
+                        selBox.style.height = Math.abs(State.selectionBox.endY - State.selectionBox.startY) + 'px';
+                    }
+                });
+
+                window.addEventListener('pointerup', () => {
+                    if (State.draggedNodeId) {
+                        const map = App.getActiveMap();
+                        if (!State.hasDraggedMoved) {
+                            UI.openInspector(State.draggedNodeId);
+                        } else {
+                            State.selectedNodeIds.forEach(id => {
+                                const n = map.nodes.find(x => x.id === id);
+                                if (n && !n.locked) n.modifiedAt = Utils.now();
+                            });
+                            App.touchActiveMap();
+                            Storage.save();
+                        }
+                        State.draggedNodeId = null;
+                    }
+                    if (State.isPanning) State.isPanning = false;
+                    if (State.isSelecting) {
+                        State.isSelecting = false;
+                        selBox.style.display = 'none';
+                        const b = State.selectionBox;
+                        const left = Math.min(b.startX, b.endX), right = Math.max(b.startX, b.endX);
+                        const top = Math.min(b.startY, b.endY), bottom = Math.max(b.startY, b.endY);
+                        if (right - left > 10 && bottom - top > 10) {
+                            const map = App.getActiveMap();
+                            State.selectedNodeIds = [];
+                            map.nodes.forEach(node => {
+                                const sx = node.x * State.viewport.scale + State.viewport.x;
+                                const sy = node.y * State.viewport.scale + State.viewport.y;
+                                const sw = 256 * State.viewport.scale, sh = 84 * State.viewport.scale;
+                                if (sx < right && sx + sw > left && sy < bottom && sy + sh > top) {
+                                    State.selectedNodeIds.push(node.id);
+                                }
+                            });
+                            if (State.selectedNodeIds.length > 0) {
+                                State.selectedNodeId = State.selectedNodeIds[0];
+                                Utils.toast(`Selected ${State.selectedNodeIds.length} nodes`, 'info');
+                            }
+                            UI.renderNodes();
+                        }
+                    }
+                });
+
+                // Mouse Wheel Zoom
+                vp.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    const f = e.deltaY < 0 ? 1.1 : 0.9;
+                    const ns = Math.min(2.2, Math.max(0.35, State.viewport.scale * f));
+                    const rect = vp.getBoundingClientRect();
+                    const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
+                    State.viewport.x = cx - (cx - State.viewport.x) * (ns / State.viewport.scale);
+                    State.viewport.y = cy - (cy - State.viewport.y) * (ns / State.viewport.scale);
+                    State.viewport.scale = ns;
+                    UI.updateWorldTransform();
+                }, { passive: false });
+
+                // Zoom & Center Buttons
+                Utils.$('zoomInBtn').onclick = () => { State.viewport.scale = Math.min(2.2, State.viewport.scale + 0.15); UI.updateWorldTransform(); };
+                Utils.$('zoomOutBtn').onclick = () => { State.viewport.scale = Math.max(0.35, State.viewport.scale - 0.15); UI.updateWorldTransform(); };
+                Utils.$('centerViewBtn').onclick = () => App.centerMap(true);
+
+                // Layout Buttons
+                document.querySelectorAll('.layout-btn').forEach(btn => {
+                    btn.onclick = () => Layout.apply(btn.dataset.layout, true);
+                });
+
+                // Bottom Dock Quick Actions
+                Utils.$('addChildQuickBtn').onclick = () => App.addChildNode(State.selectedNodeId);
+                Utils.$('addSiblingQuickBtn').onclick = () => App.addSiblingNode(State.selectedNodeId);
+                Utils.$('deleteNodeQuickBtn').onclick = App.deleteSelectedNodes;
+                Utils.$('toolLockBtn').onclick = App.toggleLockSelected;
+                Utils.$('toolSelectModeBtn').onclick = () => {
+                    State.isBoxSelectMode = !State.isBoxSelectMode;
+                    const btn = Utils.$('toolSelectModeBtn');
+                    btn.classList.toggle('bg-indigo-600', State.isBoxSelectMode);
+                    btn.classList.toggle('text-white', State.isBoxSelectMode);
+                    vp.style.cursor = State.isBoxSelectMode ? 'crosshair' : 'grab';
+                    Utils.toast(State.isBoxSelectMode ? 'Box Multi-Select Mode ON' : 'Pan Mode ON', 'info');
+                };
+
+                // Search
+                const handleSearch = (val) => {
+                    State.searchQuery = val;
+                    Utils.$('clearSearchBtn').classList.toggle('hidden', !val);
+                    UI.renderNodes();
+                };
+                Utils.$('searchNodesInput').oninput = (e) => handleSearch(e.target.value);
+                Utils.$('mobileSearchInput').oninput = (e) => handleSearch(e.target.value);
+                Utils.$('clearSearchBtn').onclick = () => { Utils.$('searchNodesInput').value = ''; handleSearch(''); };
+
+                // Header Map & Modal Buttons
+                Utils.$('newMapBtn').onclick = App.createNewMap;
+                Utils.$('headerNewMapBtn').onclick = App.createNewMap;
+                Utils.$('headerDeleteMapBtn').onclick = App.deleteCurrentMap;
+                Utils.$('headerRestoreBtn').onclick = UI.openMapManagerModal;
+                Utils.$('openMapManagerBtn').onclick = UI.openMapManagerModal;
+                Utils.$('closeMapManagerBtn').onclick = () => Utils.hideModal('mapManagerModal');
+                Utils.$('openDefaultColorsBtn').onclick = UI.openDefaultColorsModal;
+                Utils.$('closeDefaultColorsBtn').onclick = () => Utils.hideModal('defaultColorsModal');
+                Utils.$('doneDefaultColorsBtn').onclick = () => Utils.hideModal('defaultColorsModal');
+                Utils.$('resetDefaultColorsBtn').onclick = () => {
+                    State.statusColors = { ...Config.DEFAULT_STATUS_COLORS };
+                    Storage.save();
+                    UI.openDefaultColorsModal();
+                };
+                Utils.$('clearTrashBtn').onclick = App.clearAllTrash;
+
+                Utils.$('openSyncModalBtn').onclick = () => Utils.showModal('syncModal');
+                Utils.$('closeSyncModalBtn').onclick = () => Utils.hideModal('syncModal');
+                Utils.$('openHelpBtn').onclick = () => Utils.showModal('helpModal');
+                Utils.$('closeHelpModalBtn').onclick = () => Utils.hideModal('helpModal');
+
+                Utils.$('resetSampleBtn').onclick = () => {
+                    if (!confirm('Load sample project workflow as a new tab?')) return;
+                    const sample = App.createSampleMap();
+                    State.maps.push(sample);
+                    if (!State.openTabIds.includes(sample.id)) State.openTabIds.push(sample.id);
+                    App.switchMap(sample.id);
+                    Layout.apply('tree', false);
+                    Utils.toast('Sample project loaded', 'success');
+                };
+
+                Utils.$('themeToggleBtn').onclick = () => {
+                    const isDark = document.documentElement.classList.toggle('dark');
+                    vp.classList.toggle('canvas-grid-dark', isDark);
+                    vp.classList.toggle('canvas-grid-light', !isDark);
+                    State.isDark = isDark;
+                    Storage.save();
+                };
+
+                Utils.$('userProfileBtn').onclick = () => {
+                    Utils.showModal('syncModal');
+                    document.querySelector('[data-synctab="firebase"]').click();
+                };
+
+                // Inspector Panel Controls
+                Utils.$('closeInspectorBtn').onclick = UI.closeInspector;
+                Utils.$('panelAddChildBtn').onclick = () => App.addChildNode(State.selectedNodeId);
+                Utils.$('panelDeleteNodeBtn').onclick = App.deleteSelectedNodes;
+                Utils.$('panelLockBtn').onclick = App.toggleLockSelected;
+
+                Utils.$('nodeTitleInput').oninput = (e) => App.updateSelectedNode('title', e.target.value);
+                Utils.$('nodeStatusSelect').onchange = (e) => App.updateSelectedNode('status', e.target.value);
+
+                // Inspector Tabs
+                document.querySelectorAll('.inspector-tab').forEach(tabBtn => {
+                    tabBtn.onclick = () => {
+                        const target = tabBtn.dataset.tab;
+                        document.querySelectorAll('.inspector-tab').forEach(b => {
+                            b.className = 'inspector-tab flex-1 py-1.5 px-1 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center justify-center gap-1';
+                        });
+                        tabBtn.className = 'inspector-tab flex-1 py-1.5 px-1 rounded-lg text-xs font-semibold bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm flex items-center justify-center gap-1';
+                        document.querySelectorAll('.tab-content').forEach(p => p.classList.add('hidden'));
+                        Utils.$(`tab-${target}`).classList.remove('hidden');
+                    };
+                });
+
+                // Notes & Markdown
+                Utils.$('nodeNotesInput').oninput = (e) => {
+                    App.updateSelectedNode('notes', e.target.value);
+                    UI.updateMarkdownPreview();
+                };
+                Utils.$('toggleMarkdownPreviewBtn').onclick = () => {
+                    State.isMarkdownPreview = !State.isMarkdownPreview;
+                    Utils.$('nodeNotesInput').classList.toggle('hidden', State.isMarkdownPreview);
+                    Utils.$('nodeNotesPreview').classList.toggle('hidden', !State.isMarkdownPreview);
+                    Utils.$('mdPreviewLabel').textContent = State.isMarkdownPreview ? 'Edit' : 'Preview';
+                    UI.updateMarkdownPreview();
+                };
+
+                // Code & Language
+                Utils.$('nodeCodeInput').oninput = (e) => {
+                    App.updateSelectedNode('code', e.target.value);
+                    UI.updateCodePreview();
+                };
+                Utils.$('nodeCodeLangSelect').onchange = (e) => {
+                    App.updateSelectedNode('codeLang', e.target.value);
+                    UI.updateCodePreview();
+                };
+                Utils.$('addLanguageBtn').onclick = App.addManualLanguage;
+                Utils.$('copyCodeSnippetBtn').onclick = () => {
+                    const code = Utils.$('nodeCodeInput').value;
+                    navigator.clipboard.writeText(code);
+                    Utils.toast('Code copied to clipboard!', 'success');
+                };
+
+                // Media Upload & URL
+                Utils.$('nodeImageUrlInput').oninput = (e) => {
+                    App.updateSelectedNode('image', e.target.value);
+                    UI.updateImagePreview(e.target.value);
+                };
+                Utils.$('nodeImageFileInput').onchange = (e) => {
+                    if (e.target.files && e.target.files[0]) App.compressAndAttachImage(e.target.files[0]);
+                };
+                Utils.$('clearImageBtn').onclick = () => {
+                    App.updateSelectedNode('image', '');
+                    Utils.$('nodeImageUrlInput').value = '';
+                    UI.updateImagePreview('');
+                };
+                const dropZone = Utils.$('imageDropZone');
+                ['dragover', 'dragenter'].forEach(ev => dropZone.addEventListener(ev, (e) => { e.preventDefault(); dropZone.classList.add('border-indigo-500', 'bg-indigo-500/5'); }));
+                ['dragleave', 'drop'].forEach(ev => dropZone.addEventListener(ev, (e) => { e.preventDefault(); dropZone.classList.remove('border-indigo-500', 'bg-indigo-500/5'); }));
+                dropZone.addEventListener('drop', (e) => {
+                    if (e.dataTransfer.files && e.dataTransfer.files[0]) App.compressAndAttachImage(e.dataTransfer.files[0]);
+                });
+
+                // Git Commit Track
+                Utils.$('addGitCommitBtn').onclick = App.addGitCommit;
+                Utils.$('gitCommitMsg').onkeydown = (e) => { if (e.key === 'Enter') App.addGitCommit(); };
+
+                // Sync Modal Tabs & Actions
+                document.querySelectorAll('.sync-tab-btn').forEach(btn => {
+                    btn.onclick = () => {
+                        const target = btn.dataset.synctab;
+                        document.querySelectorAll('.sync-tab-btn').forEach(b => {
+                            b.className = 'sync-tab-btn py-3 px-4 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 whitespace-nowrap';
+                        });
+                        btn.className = 'sync-tab-btn py-3 px-4 text-xs font-bold border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400 whitespace-nowrap';
+                        document.querySelectorAll('.sync-tab-panel').forEach(p => p.classList.add('hidden'));
+                        Utils.$(`synctab-${target}`).classList.remove('hidden');
+                    };
+                });
+
+                Utils.$('exportJsonBtn').onclick = Cloud.exportJson;
+                Utils.$('importJsonInput').onchange = (e) => { if (e.target.files[0]) Cloud.importJson(e.target.files[0]); };
+                Utils.$('connectFirebaseBtn').onclick = Cloud.connectFirebase;
+                Utils.$('pushFirebaseBtn').onclick = Cloud.pushFirestore;
+                Utils.$('pullFirebaseBtn').onclick = Cloud.pullFirestore;
+                Utils.$('authorizeGdriveBtn').onclick = Cloud.authorizeDrive;
+                Utils.$('saveToGdriveBtn').onclick = Cloud.saveToDrive;
+                Utils.$('loadFromGdriveBtn').onclick = Cloud.loadFromDrive;
+
+                // Backdrop click to close modals
+                ['syncModal', 'mapManagerModal', 'defaultColorsModal', 'helpModal'].forEach(id => {
+                    Utils.$(id).addEventListener('click', (e) => { if (e.target.id === id) Utils.hideModal(id); });
+                });
+				
+				// Lightbox Viewer & Swipe Controls
+                Utils.$('closeLightboxBtn').onclick = () => Utils.hideModal('lightboxModal');
+                Utils.$('lbPrevBtn').onclick = () => MediaCode.stepSlide(-1);
+                Utils.$('lbNextBtn').onclick = () => MediaCode.stepSlide(1);
+                Utils.$('lbZoomInBtn').onclick = () => { MediaCode.lbZoom = Math.min(3, MediaCode.lbZoom + 0.25); MediaCode.updateLightboxSlide(); };
+                Utils.$('lbZoomOutBtn').onclick = () => { MediaCode.lbZoom = Math.max(0.5, MediaCode.lbZoom - 0.25); MediaCode.updateLightboxSlide(); };
+                Utils.$('lbResetZoomBtn').onclick = () => { MediaCode.lbZoom = 1; MediaCode.updateLightboxSlide(); };
+                Utils.$('lbCopyCodeBtn').onclick = () => {
+                    navigator.clipboard.writeText(Utils.$('lbCodeContent').textContent);
+                    Utils.toast('Code copied!', 'success');
+                };
+                document.querySelectorAll('.lb-tab').forEach(btn => {
+                    btn.onclick = () => {
+                        document.querySelectorAll('.lb-tab').forEach(b => b.className = 'lb-tab flex-1 py-1.5 rounded-lg text-slate-500');
+                        btn.className = 'lb-tab flex-1 py-1.5 rounded-lg bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm';
+                        document.querySelectorAll('.lb-pane').forEach(p => p.classList.add('hidden'));
+                        Utils.$(`lb-pane-${btn.dataset.lbtab}`).classList.remove('hidden');
+                    };
+                });
+
+                // Multi-Code File Tabs & Multi-Image Gallery Controls
+                Utils.$('addCodeFileBtn').onclick = () => {
+                    const node = App.getSelectedNode();
+                    if (!node) return;
+                    const name = prompt('New Code File Name (e.g. app.js, firmware.cpp):', `script_${node.codeFiles.length + 1}.js`);
+                    if (!name || !name.trim()) return;
+                    node.codeFiles.push({ id: 'cf_' + Date.now(), name: name.trim(), lang: 'JavaScript', content: '' });
+                    node.activeCodeIdx = node.codeFiles.length - 1;
+                    MediaCode.renderCodeTabs(node);
+                    Storage.save();
+                };
+                Utils.$('deleteCodeFileBtn').onclick = () => {
+                    const node = App.getSelectedNode();
+                    if (!node || node.codeFiles.length <= 1) { Utils.toast('At least 1 code file must stay', 'error'); return; }
+                    node.codeFiles.splice(node.activeCodeIdx || 0, 1);
+                    node.activeCodeIdx = Math.max(0, node.codeFiles.length - 1);
+                    MediaCode.renderCodeTabs(node);
+                    Storage.save();
+                };
+                Utils.$('nodeCodeFileNameInput').oninput = (e) => {
+                    const node = App.getSelectedNode();
+                    if (!node) return;
+                    node.codeFiles[node.activeCodeIdx || 0].name = e.target.value;
+                    MediaCode.renderCodeTabs(node);
+                    Storage.save();
+                };
+                Utils.$('nodeCodeInput').oninput = (e) => {
+                    const node = App.getSelectedNode();
+                    if (!node) return;
+                    const cf = node.codeFiles[node.activeCodeIdx || 0];
+                    if (cf) cf.content = e.target.value;
+                    node.code = e.target.value;
+                    UI.updateCodePreview();
+                    Storage.save();
+                };
+                Utils.$('addImageUrlBtn').onclick = () => {
+                    const node = App.getSelectedNode();
+                    const url = Utils.$('nodeImageUrlInput').value.trim();
+                    if (!node || !url) return;
+                    node.images.push({ id: 'img_' + Date.now(), name: 'Image Link', src: url });
+                    node.activeImgIdx = node.images.length - 1;
+                    Utils.$('nodeImageUrlInput').value = '';
+                    MediaCode.renderInspectorGallery(node);
+                    UI.renderAll();
+                    Storage.save();
+                };
+                Utils.$('nodeImageFileInput').onchange = (e) => {
+                    if (e.target.files?.length) MediaCode.attachFiles(e.target.files);
+                };
+
+                // .ZIP Project Bundle Export / Import
+                Utils.$('exportZipBtn').onclick = MediaCode.exportZipBundle;
+                Utils.$('importZipInput').onchange = (e) => {
+                    if (e.target.files?.[0]) MediaCode.importZipBundle(e.target.files[0]);
+                };
+				
+                // Keyboard Shortcuts
+                window.addEventListener('keydown', (e) => {
+                    const tag = document.activeElement.tagName.toLowerCase();
+                    if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+                    if (e.key === 'Tab') { e.preventDefault(); App.addChildNode(State.selectedNodeId); }
+                    else if (e.key === 'Enter') { e.preventDefault(); App.addSiblingNode(State.selectedNodeId); }
+                    else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); App.deleteSelectedNodes(); }
+                    else if (e.key === 'Escape') {
+                        UI.closeInspector();
+                        ['syncModal', 'mapManagerModal', 'defaultColorsModal', 'helpModal'].forEach(Utils.hideModal);
+                    }
+                });
+            }
+        };
+
+        /* ====================================================================
+         * BOOTSTRAP
+         * ==================================================================== */
+        window.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) lucide.createIcons();
+            Utils.$('welcomeOfflineBtn').onclick = Auth.enterApp;
+            Utils.$('welcomeGoogleBtn').onclick = Auth.loginFromWelcome;
+        });
+		
+		/* ====================================================================
+         * MODULE 11: MULTI-IMAGE SWIPE, LIGHTBOX VIEWER & MULTI-CODE TABS
+         * ==================================================================== */
+        const MediaCode = {
+            lbNodeId: null,
+            lbImgIdx: 0,
+            lbZoom: 1,
+
+            // Attach full-quality images (stored safely in IndexedDB)
+            attachFiles: (fileList) => {
+                const node = App.getSelectedNode();
+                if (!node || !fileList.length) return;
+                Array.from(fileList).forEach(file => {
+                    if (!file.type.startsWith('image/')) return;
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        node.images.push({
+                            id: 'img_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
+                            name: file.name,
+                            src: ev.target.result
+                        });
+                        node.activeImgIdx = node.images.length - 1;
+                        node.modifiedAt = Utils.now();
+                        App.touchActiveMap();
+                        MediaCode.renderInspectorGallery(node);
+                        UI.renderAll();
+                        DBStore.set('state_v7', State);
+                        Utils.toast(`Added ${file.name}`, 'success');
+                    };
+                    reader.readAsDataURL(file);
+                });
+            },
+
+            renderInspectorGallery: (node) => {
+                const gal = Utils.$('nodeMediaGallery');
+                if (!gal) return;
+                gal.innerHTML = '';
+                (node.images || []).forEach((img, idx) => {
+                    const card = document.createElement('div');
+                    card.className = 'relative group rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-950 h-28 cursor-pointer';
+                    card.innerHTML = `
+                        <img src="${Utils.esc(img.src)}" class="w-full h-full object-cover" />
+                        <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+                            <button data-act="view" class="px-2 py-1 rounded bg-indigo-600 text-white text-[10px] font-bold">View</button>
+                            <button data-act="del" class="px-2 py-1 rounded bg-rose-600 text-white text-[10px] font-bold">✕</button>
+                        </div>`;
+                    card.querySelector('[data-act="view"]').onclick = (e) => { e.stopPropagation(); MediaCode.openLightbox(node.id, idx); };
+                    card.querySelector('[data-act="del"]').onclick = (e) => {
+                        e.stopPropagation();
+                        node.images.splice(idx, 1);
+                        node.activeImgIdx = Math.max(0, node.images.length - 1);
+                        MediaCode.renderInspectorGallery(node);
+                        UI.renderAll();
+                        DBStore.set('state_v7', State);
+                    };
+                    gal.appendChild(card);
+                });
+            },
+
+            // Multi-Code File Tabs inside Inspector
+            renderCodeTabs: (node) => {
+                const bar = Utils.$('codeFilesTabBar');
+                if (!bar) return;
+                bar.innerHTML = '';
+                if (!node.codeFiles || !node.codeFiles.length) {
+                    node.codeFiles = [{ id: 'cf_' + Date.now(), name: 'main.js', lang: 'JavaScript', content: '' }];
+                }
+                const idx = Math.min(node.activeCodeIdx || 0, node.codeFiles.length - 1);
+                node.activeCodeIdx = idx;
+
+                node.codeFiles.forEach((cf, i) => {
+                    const btn = document.createElement('button');
+                    btn.className = `px-2.5 py-1 rounded-lg text-[11px] font-mono shrink-0 border ${i === idx ? 'bg-indigo-600 text-white border-indigo-600 font-bold' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700'}`;
+                    btn.textContent = cf.name;
+                    btn.onclick = () => {
+                        node.activeCodeIdx = i;
+                        MediaCode.renderCodeTabs(node);
+                    };
+                    bar.appendChild(btn);
+                });
+
+                const activeFile = node.codeFiles[idx];
+                Utils.$('nodeCodeFileNameInput').value = activeFile.name;
+                Utils.$('nodeCodeLangSelect').value = activeFile.lang || 'JavaScript';
+                Utils.$('nodeCodeInput').value = activeFile.content || '';
+                UI.updateCodePreview();
+            },
+
+            // Full-Screen Lightbox Viewer with Swipe + Notes/Code/Git Tabs
+            openLightbox: (nodeId, imgIdx = 0) => {
+                const map = App.getActiveMap();
+                const node = map?.nodes.find(n => n.id === nodeId);
+                if (!node || !node.images || !node.images.length) return;
+
+                MediaCode.lbNodeId = nodeId;
+                MediaCode.lbImgIdx = Math.max(0, Math.min(imgIdx, node.images.length - 1));
+                MediaCode.lbZoom = 1;
+
+                Utils.$('lbNodeTitle').textContent = node.title;
+                Utils.$('lb-pane-notes').innerHTML = window.marked ? marked.parse(node.notes || '*No notes added.*') : Utils.esc(node.notes || 'No notes.');
+
+                // Populate Code File Tabs inside Lightbox
+                const lbCodeTabs = Utils.$('lbCodeFileTabs');
+                lbCodeTabs.innerHTML = '';
+                (node.codeFiles || []).forEach((cf, i) => {
+                    const b = document.createElement('button');
+                    b.className = `px-2.5 py-1 rounded-lg text-xs font-mono border ${i === 0 ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-100 dark:bg-slate-800 border-slate-700'}`;
+                    b.textContent = cf.name;
+                    b.onclick = () => {
+                        lbCodeTabs.querySelectorAll('button').forEach(x => x.className = 'px-2.5 py-1 rounded-lg text-xs font-mono border bg-slate-100 dark:bg-slate-800 border-slate-700');
+                        b.className = 'px-2.5 py-1 rounded-lg text-xs font-mono border bg-indigo-600 text-white border-indigo-600';
+                        Utils.$('lbCodeLangLabel').textContent = cf.lang;
+                        const codeEl = Utils.$('lbCodeContent');
+                        codeEl.textContent = cf.content || '// Empty file';
+                        if (window.hljs) { delete codeEl.dataset.highlighted; try { hljs.highlightElement(codeEl); } catch (e) {} }
+                    };
+                    lbCodeTabs.appendChild(b);
+                });
+                if (lbCodeTabs.firstChild) lbCodeTabs.firstChild.click();
+
+                // Populate Git Logs inside Lightbox
+                const gitPane = Utils.$('lb-pane-git');
+                gitPane.innerHTML = (node.gitLogs || []).map(l => `
+                    <div class="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 border-l-2 border-indigo-500 text-xs">
+                        <div class="flex justify-between text-[10px] text-slate-400"><strong>[${Utils.esc(l.type)}]</strong><span>${Utils.esc(l.time)}</span></div>
+                        <div>${Utils.esc(l.msg)}</div>
+                    </div>`).join('') || '<div class="text-xs text-slate-400">No Git commits yet.</div>';
+
+                MediaCode.updateLightboxSlide();
+                Utils.showModal('lightboxModal');
+            },
+
+            updateLightboxSlide: () => {
+                const node = App.getActiveMap()?.nodes.find(n => n.id === MediaCode.lbNodeId);
+                if (!node || !node.images.length) return;
+                const item = node.images[MediaCode.lbImgIdx];
+                const imgEl = Utils.$('lbImage');
+                imgEl.src = item.src;
+                imgEl.style.transform = `scale(${MediaCode.lbZoom})`;
+                Utils.$('lbCounter').textContent = `${MediaCode.lbImgIdx + 1} / ${node.images.length}`;
+                Utils.$('lbCaption').textContent = item.name || '';
+            },
+
+            stepSlide: (delta) => {
+                const node = App.getActiveMap()?.nodes.find(n => n.id === MediaCode.lbNodeId);
+                if (!node || !node.images.length) return;
+                MediaCode.lbImgIdx = (MediaCode.lbImgIdx + delta + node.images.length) % node.images.length;
+                MediaCode.lbZoom = 1;
+                MediaCode.updateLightboxSlide();
+            },
+
+            // Export Clean .ZIP Bundle (project.json + assets/ + code/)
+            exportZipBundle: async () => {
+                if (!window.JSZip) { Utils.toast('JSZip library not loaded', 'error'); return; }
+                const zip = new JSZip();
+                const assetsFolder = zip.folder('assets');
+                const codeFolder = zip.folder('code');
+
+                const cleanMaps = JSON.parse(JSON.stringify(State.maps));
+                cleanMaps.forEach(map => {
+                    map.nodes.forEach(node => {
+                        const safeNode = (node.title || node.id).replace(/[^a-z0-9_-]/gi, '_').slice(0, 30);
+                        // Extract images to assets/
+                        (node.images || []).forEach((img, i) => {
+                            if (img.src && img.src.startsWith('data:image/')) {
+                                const ext = img.src.includes('png') ? 'png' : 'jpg';
+                                const relPath = `assets/${node.id}_${i + 1}.${ext}`;
+                                const base64Data = img.src.split(',')[1];
+                                assetsFolder.file(`${node.id}_${i + 1}.${ext}`, base64Data, { base64: true });
+                                img.src = relPath;
+                            }
+                        });
+                        // Extract code files to code/<node>/
+                        (node.codeFiles || []).forEach(cf => {
+                            const fName = (cf.name || 'snippet.txt').replace(/[^a-z0-9._-]/gi, '_');
+                            codeFolder.folder(safeNode).file(fName, cf.content || '');
+                        });
+                    });
+                });
+
+                zip.file('project.json', JSON.stringify({
+                    version: 'v7-zip-bundle',
+                    exportedAt: new Date().toISOString(),
+                    maps: cleanMaps,
+                    activeMapId: State.activeMapId,
+                    openTabIds: State.openTabIds,
+                    trash: State.trash,
+                    statusColors: State.statusColors,
+                    languages: State.languages
+                }, null, 2));
+
+                const blob = await zip.generateAsync({ type: 'blob' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `ThinkingFlow_Project_${new Date().toISOString().slice(0, 10)}.zip`;
+                a.click();
+                URL.revokeObjectURL(a.href);
+                Utils.toast('Exported clean .ZIP bundle!', 'success');
+            },
+
+            // Import .ZIP Bundle back into IndexedDB
+            importZipBundle: async (file) => {
+                if (!file || !window.JSZip) return;
+                try {
+                    const zip = await JSZip.loadAsync(file);
+                    const projFile = zip.file('project.json');
+                    if (!projFile) throw new Error('project.json missing in ZIP');
+                    const data = JSON.parse(await projFile.async('string'));
+
+                    for (const map of (data.maps || [])) {
+                        for (const node of (map.nodes || [])) {
+                            for (const img of (node.images || [])) {
+                                if (img.src && img.src.startsWith('assets/')) {
+                                    const assetEntry = zip.file(img.src);
+                                    if (assetEntry) {
+                                        const b64 = await assetEntry.async('base64');
+                                        const mime = img.src.endsWith('.png') ? 'image/png' : 'image/jpeg';
+                                        img.src = `data:${mime};base64,${b64}`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Object.assign(State, Storage.normalize(data));
+                    await DBStore.set('state_v7', State);
+                    UI.renderAll();
+                    App.centerMap(true);
+                    Utils.hideModal('syncModal');
+                    Utils.toast('Restored full .ZIP bundle!', 'success');
+                } catch (err) {
+                    Utils.toast('ZIP Import Error: ' + err.message, 'error');
+                }
+            }
+        };
+    </script>
+</body>
+</html>
