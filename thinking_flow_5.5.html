@@ -767,7 +767,16 @@
         /* ====================================================================
          * MODULE 6: LAYOUT ALGORITHMS (Respects Locked Nodes)
          * ==================================================================== */
-        const Layout = {
+ const Layout = {
+            // ஒவ்வொரு Node-ன் உள்ளடக்கத்திற்கு ஏற்ற உண்மையான உயரத்தைக் கணக்கிடும் பகுதி
+            getNodeHeight: (node) => {
+                const el = Utils.$('nodesLayer')?.querySelector(`[data-id="${node.id}"]`);
+                if (el && el.offsetHeight > 40) return el.offsetHeight;
+                if (node.image && node.image.trim()) return 205; // படம் இருந்தால் அதிக உயரம்
+                if (node.notes && node.notes.trim()) return 145; // குறிப்புகள் இருந்தால் நடுத்தர உயரம்
+                return 105; // சாதாரண கார்டு உயரம்
+            },
+
             apply: (mode, animate = true) => {
                 const map = App.getActiveMap();
                 if (!map) return;
@@ -791,27 +800,38 @@
                 nodes.forEach(n => { if (n.parentId && childrenMap[n.parentId]) childrenMap[n.parentId].push(n); });
 
                 if (mode === 'tree') {
-                    const gapX = 330, gapY = 135;
+                    const gapX = 330;
+                    const verticalPadding = 28; // கார்டுகளுக்கு இடையேயான பாதுகாப்பான இடைவெளி
                     let cursorY = 100;
+
                     const layoutSub = (node, depth) => {
                         if (node.locked) return;
                         const kids = childrenMap[node.id] || [];
+                        const nodeH = Layout.getNodeHeight(node);
                         node.x = 100 + depth * gapX;
+
                         if (kids.length === 0) {
                             node.y = cursorY;
-                            cursorY += gapY;
+                            cursorY += nodeH + verticalPadding;
                         } else {
+                            const startY = cursorY;
                             kids.forEach(k => layoutSub(k, depth + 1));
                             const unlocked = kids.filter(k => !k.locked);
                             if (unlocked.length > 0) {
-                                node.y = (unlocked[0].y + unlocked[unlocked.length - 1].y) / 2;
+                                const firstCenter = unlocked[0].y + Layout.getNodeHeight(unlocked[0]) / 2;
+                                const lastCenter = unlocked[unlocked.length - 1].y + Layout.getNodeHeight(unlocked[unlocked.length - 1]) / 2;
+                                node.y = (firstCenter + lastCenter) / 2 - nodeH / 2;
                             }
+                            // Parent கார்டு அதன் குழந்தைகளை விட உயரமாக இருந்தால் கீழே உள்ளவை இடிக்காமல் தள்ளும்
+                            const minNextY = node.y + nodeH + verticalPadding;
+                            if (cursorY < minNextY) cursorY = minNextY;
                         }
                     };
                     layoutSub(root, 0);
                 } else if (mode === 'radial') {
-                    const cx = 600, cy = 450, nodeW = 256, nodeH = 84;
-                    if (!root.locked) { root.x = cx - nodeW / 2; root.y = cy - nodeH / 2; }
+                    const cx = 600, cy = 450, nodeW = 256;
+                    const rootH = Layout.getNodeHeight(root);
+                    if (!root.locked) { root.x = cx - nodeW / 2; root.y = cy - rootH / 2; }
 
                     const countLeaves = (n) => {
                         const kids = (childrenMap[n.id] || []).filter(k => !k.locked);
@@ -821,14 +841,15 @@
                         if (node.locked) return;
                         const kids = (childrenMap[node.id] || []).filter(k => !k.locked);
                         if (kids.length === 0) return;
-                        const radius = depth * 320;
+                        const radius = depth * 360;
                         const total = kids.reduce((s, k) => s + countLeaves(k), 0);
                         let cursor = a0;
                         kids.forEach(kid => {
                             const sweep = (a1 - a0) * (countLeaves(kid) / total);
                             const mid = cursor + sweep / 2;
+                            const kidH = Layout.getNodeHeight(kid);
                             kid.x = cx + Math.cos(mid) * radius - nodeW / 2;
-                            kid.y = cy + Math.sin(mid) * radius - nodeH / 2;
+                            kid.y = cy + Math.sin(mid) * radius - kidH / 2;
                             layoutRadial(kid, depth + 1, cursor, cursor + sweep);
                             cursor += sweep;
                         });
@@ -840,7 +861,6 @@
                 Storage.save();
             }
         };
-
         /* ====================================================================
          * MODULE 7: UI RENDERER & INSPECTOR
          * ==================================================================== */
@@ -1423,6 +1443,11 @@
                     });
                 }
                 UI.renderAll();
+                // Notes அல்லது Image மாறும்போது Tree/Radial இடைவெளியை தானாக சரிசெய்யும்
+                const map = App.getActiveMap();
+                if ((field === 'notes' || field === 'image') && map && map.layout !== 'freeform') {
+                    requestAnimationFrame(() => Layout.apply(map.layout, false));
+                }
                 Storage.save();
             },
             addManualLanguage: () => {
