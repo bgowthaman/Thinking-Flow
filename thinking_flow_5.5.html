@@ -102,7 +102,7 @@
         <!-- TOP FLOATING HEADER TOOLBAR -->
         <header class="fixed top-3 left-3 right-3 z-30 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
             <!-- Brand & Active Map Title -->
-            <div class="pointer-events-auto flex items-center gap-2.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 px-3.5 py-2 rounded-2xl shadow-lg">
+            <div class="pointer-events-auto flex items-center gap-2.5 bg-white/90 dark:bg-slate-900/90 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3.5 py-2 rounded-2xl shadow-lg">
                 <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-inner">
                     <i data-lucide="network" class="w-4 h-4"></i>
                 </div>
@@ -118,7 +118,7 @@
             </div>
 
             <!-- Center Search & Layout Controls -->
-            <div class="pointer-events-auto hidden md:flex items-center gap-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-2xl shadow-lg">
+            <div class="pointer-events-auto hidden md:flex items-center gap-2 bg-white/90 dark:bg-slate-900/90 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-2xl shadow-lg">
                 <div class="relative flex items-center">
                     <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-2.5"></i>
                     <input id="searchNodesInput" type="text" placeholder="Search nodes / தேடுக..."
@@ -142,7 +142,7 @@
             </div>
 
             <!-- Right Action Controls -->
-            <div class="pointer-events-auto flex items-center gap-1.5 sm:gap-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 px-2.5 py-1.5 rounded-2xl shadow-lg">
+            <div class="pointer-events-auto flex items-center gap-1.5 sm:gap-2 bg-white/90 dark:bg-slate-900/90 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2.5 py-1.5 rounded-2xl shadow-lg">
                 <button id="openSyncModalBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition active:scale-95" title="Cloud Sync & Backup">
                     <i data-lucide="cloud" class="w-3.5 h-3.5"></i><span class="hidden sm:inline">Cloud & Backup</span>
                 </button>
@@ -184,7 +184,7 @@
 
         <!-- MAP TABS BAR -->
         <div class="fixed top-[4.75rem] left-3 right-3 z-25 pointer-events-none">
-            <div class="pointer-events-auto flex items-center gap-1.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 px-2 py-1.5 rounded-xl shadow-lg overflow-x-auto">
+            <div class="pointer-events-auto flex items-center gap-1.5 bg-white/90 dark:bg-slate-900/90 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2 py-1.5 rounded-xl shadow-lg overflow-x-auto">
                 <div id="mapTabsList" class="flex items-center gap-1.5 flex-1 min-w-0 overflow-x-auto"></div>
                 <button id="newMapBtn" class="shrink-0 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1 transition active:scale-95" title="New Map">
                     <i data-lucide="plus" class="w-3.5 h-3.5"></i><span class="hidden sm:inline">New Map</span>
@@ -193,7 +193,7 @@
         </div>
 
         <!-- Mobile Search & Layout Bar -->
-        <div class="md:hidden fixed top-[8.25rem] left-3 right-3 z-20 flex items-center justify-between gap-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-xl shadow">
+        <div class="md:hidden fixed top-[8.25rem] left-3 right-3 z-20 flex items-center justify-between gap-2 bg-white/90 dark:bg-slate-900/90 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-xl shadow">
             <input id="mobileSearchInput" type="text" placeholder="Search / தேடுக..." class="bg-slate-100 dark:bg-slate-800 text-xs px-2.5 py-1.5 rounded-lg w-1/2 focus:outline-none">
             <div class="flex items-center gap-1 text-[11px]">
                 <button data-layout="tree" class="layout-btn px-2 py-1 rounded bg-indigo-600 text-white">Tree</button>
@@ -204,14 +204,16 @@
 
         <!-- MAIN INTERACTIVE CANVAS -->
         <main id="canvasViewport" class="relative flex-1 w-full h-full overflow-hidden canvas-grid-dark cursor-grab active:cursor-grabbing">
-            <div id="canvasWorld" class="absolute top-0 left-0 origin-top-left will-change-transform" style="transform: translate(0px,0px) scale(1);">
+
+            <!-- புதியது (will-change-transform நீக்கப்பட்டது): -->
+				<div id="canvasWorld" class="absolute top-0 left-0 origin-top-left" style="transform: translate(0px,0px) scale(1);">
                 <svg id="connectionsLayer" class="absolute top-0 left-0 overflow-visible pointer-events-none" width="1" height="1"></svg>
                 <div id="nodesLayer" class="relative"></div>
             </div>
             <div id="selectionBox"></div>
 
             <!-- Bottom Floating Action, Multi-Select & Zoom Dock -->
-            <div class="fixed bottom-4 left-4 z-20 flex flex-wrap items-center gap-1.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 p-1.5 rounded-2xl shadow-xl">
+            <div class="fixed bottom-4 left-4 z-20 flex flex-wrap items-center gap-1.5 bg-white/90 dark:bg-slate-900/90 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1.5 rounded-2xl shadow-xl">
                 <button id="addChildQuickBtn" class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition active:scale-95" title="Add Child (Tab)">
                     <i data-lucide="plus-circle" class="w-4 h-4"></i><span>+ Child <span class="opacity-75 hidden sm:inline">(Tab)</span></span>
                 </button>
@@ -899,7 +901,7 @@
                     el.dataset.id = node.id;
                     el.style.transform = `translate(${node.x}px,${node.y}px)`;
                     el.style.borderLeftColor = node.color || '#6366f1';
-                    el.className = `mind-node absolute top-0 left-0 w-64 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 border-l-4 p-3.5 shadow-lg cursor-pointer select-none transition-opacity duration-200 overflow-hidden ${ isSelected ? 'node-selected ring-2 ring-indigo-500/60' : 'hover:border-slate-300 dark:hover:border-slate-700' } ${!matchesSearch ? 'opacity-25' : 'opacity-100'} ${isRoot ? 'ring-1 ring-indigo-500/30' : ''} ${node.locked ? 'node-locked' : ''}`;
+                    el.className = `mind-node absolute top-0 left-0 w-64 rounded-2xl bg-white/95 dark:bg-slate-900/95 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 border-l-4 p-3.5 shadow-lg cursor-pointer select-none transition-opacity duration-200 overflow-hidden ${ isSelected ? 'node-selected ring-2 ring-indigo-500/60' : 'hover:border-slate-300 dark:hover:border-slate-700' } ${!matchesSearch ? 'opacity-25' : 'opacity-100'} ${isRoot ? 'ring-1 ring-indigo-500/30' : ''} ${node.locked ? 'node-locked' : ''}`;
 
                     el.innerHTML = `
                         <div class="flex items-center justify-between gap-2 mb-1.5 min-h-[20px] w-full">
@@ -968,11 +970,12 @@
                     layer.appendChild(path);
                 });
             },
-            updateWorldTransform: () => {
-                const { x, y, scale } = State.viewport;
-                Utils.$('canvasWorld').style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
-                Utils.$('zoomLevelLabel').textContent = `${Math.round(scale * 100)}%`;
-            },
+			updateWorldTransform: () => {
+				const { x, y, scale } = State.viewport;
+				Utils.$('canvasWorld').style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+				Utils.$('zoomLevelLabel').textContent = `${Math.round(scale * 100)}%`;
+				Storage.save();
+			},
             updateLayoutButtons: (activeMode) => {
                 document.querySelectorAll('.layout-btn').forEach(btn => {
                     const isMatch = btn.dataset.layout === activeMode;
